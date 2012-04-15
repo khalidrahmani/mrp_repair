@@ -187,9 +187,6 @@
     <blockTable colWidths="265.0,51.0,225.0" style="Table1">
       <tr>
         <td>
-          <para style="P5">Shipping address :</para>
-          <para style="P3">[[ o.partner_id.name ]]</para>
-          <para style="P3">[[ o.address_id and display_address(o.address_id) ]] </para>
           <para style="P3">
             <font color="white"> </font>
           </para>
@@ -240,26 +237,26 @@
           <para style="P15">Product to Repair </para>
         </td>
         <td>
-          <para style="P15">Lot Number</para>
+          <para style="P15"> </para>
         </td>
         <td>
-          <para style="P15">Guarantee Limit </para>
+          <para style="P15"> </para>
         </td>
         <td>
-          <para style="P15">Printing Date</para>
+          <para style="P15"> Date </para>
         </td>
       </tr>
     </blockTable>
     <blockTable colWidths="130.0,136.0,136.0,136.0" style="Table3">
       <tr>
         <td>
-          <para style="P16">[[ o.product_id.name or '' ]]</para>
+          <para style="P16">[[ o.marque or '' ]] [[ o.modele or '' ]]  [[ o.matricule or '' ]]</para>
         </td>
         <td>
-          <para style="P16">[[ o.prodlot_id.name or ' ' ]]</para>
+          <para style="P16"> </para>
         </td>
         <td>
-          <para style="P16">[[ formatLang(o.guarantee_limit,date = True) ]]</para>
+          <para style="P16"> </para>
         </td>
         <td>
           <para style="P16">[[ formatLang(time.strftime('%Y-%m-%d'),date = True)]] </para>
@@ -291,15 +288,13 @@
         </td>
       </tr>
     </blockTable>
-    <para style="P29">Operation Line(s)</para>
     <section>
       <para style="P30"><font color="white">[[ repeatIn(o.operations,'line') ]] </font></para>
       <para style="P29">[[ (not line) and removeParentNode('section') ]]</para>
       <blockTable colWidths="254.0,100.0,60.0,60.0,60.0" style="Table5">[[ (line.to_invoice==True) or removeParentNode('blockTable') ]]
         <tr>
           <td>
-            <para style="terp_default_9"><font face="Helvetica-Oblique" size="8.0">(Add)  [[ ((line.type == 'add') or removeParentNode('para')) and '' ]]</font><font> [[ line.name ]]</font></para>
-          	<para style="terp_default_9"><font face="Helvetica-Oblique" size="8.0">(Remove)  [[ ((line.type == 'remove') or removeParentNode('para')) and '' ]]</font><font> [[ line.name ]]</font></para>
+            <para style="terp_default_9"><font> [[ line.name ]]</font></para>          	
           </td>
           <td>
             <para style="terp_default_Centre_9">[[ ','.join(map( lambda x: x.name, line.tax_id)) ]]</para>

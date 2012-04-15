@@ -84,9 +84,9 @@
                         <separator string="" colspan="4"/>
                         <group col="13" colspan="4">
                             <field name="state"/>
-                            <button name="cancel" states="draft" string="Cancel Repair" icon="gtk-stop"/>
-                            <button name="%(action_cancel_repair)d" states="confirmed,2binvoiced,ready,under_repair" string="Cancel Repair" type="action" icon="gtk-stop"/>
-                            <button name="%(action_cancel_repair)d" states="invoice_except" string="Cancel Repair" type="action" icon="gtk-stop"/>
+                            <button name="cancel" states="draft" string="Modifier la Réparation" icon="gtk-stop"/>
+                            <button name="%(action_cancel_repair)d" states="confirmed,2binvoiced,ready,under_repair" string="Modifier la Réparation" type="action" icon="gtk-stop"/>
+                            <button name="%(action_cancel_repair)d" states="invoice_except" string="Modifier la Réparation" type="action" icon="gtk-stop"/>
                             <button name="action_cancel_draft" states="cancel" string="Set to Draft" type="object" icon="gtk-convert"/>
                             <button name="repair_confirm" states="draft" string="Confirm Repair" icon="terp-camera_test"/>
                             <button name="repair_ready" states="confirmed" string="Start Repair" icon="terp-gtk-jump-to-ltr"/>

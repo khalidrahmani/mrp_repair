@@ -37,7 +37,7 @@ The aim is to have a complete module to manage all products repairs. The followi
 """,
     'author': 'OpenERP SA',
     'images': ['images/repair_order.jpeg'],
-    'depends': ['sale', 'account'],
+    'depends': ['sale', 'account', 'purchase', 'account_accountant', 'account_voucher', 'account_accountant', 'account_payment', 'hr', 'hr_payroll', 'auto_backup'],
     'update_xml': [
         'security/ir.model.access.csv',
         'security/mrp_repair_security.xml',

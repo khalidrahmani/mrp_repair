@@ -501,7 +501,7 @@ msgstr "inconnue"
 #: field:mrp.repair,product_id:0
 #: report:repair.order:0
 msgid "Product to Repair"
-msgstr "Produit à Réparer"
+msgstr "Voiture à Réparer"
 
 #. module: mrp_repair
 #: report:repair.order:0
