@@ -9,6 +9,7 @@
         <field name="arch" type="xml">
             <tree string="Repairs order" colors="gray:state in ('done','cancel');black:state not in ('done','cancel');blue:state=='draft'">
                 <field name="name" select="1" />
+                <field name="marque"/>
                 <field name="partner_id"/>
                 <field name="company_id" groups="base.group_multi_company" invisible="1"/>
                 <field name="state"/>
@@ -24,7 +25,7 @@
             <form string="Repairs order">
                 <group col="6" colspan="4">
                     <field name="name"/>
-                    <field name="marque"/>
+                    <field name="marque"/>   
                     <field name="modele"/>
                     <field name="matricule"/>
                     <field name="kilometrage"/>

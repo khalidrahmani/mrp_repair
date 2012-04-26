@@ -26,21 +26,42 @@ from dateutil.relativedelta import relativedelta
 from tools.translate import _
 import decimal_precision as dp
 
+class car_marque(osv.osv):
+    
+    _name = 'car.marque'
+    _description = "Marque de voitures"
+    _order = "name"
+    _columns = {
+        'name': fields.char("Marque", size=64),
+    }
+    
+    _sql_constraints = [
+        ('uniq_name', 'unique(name)', "The Name must be unique"),
+    ]
+    
+car_marque()
+
+class car_modele(osv.osv):
+    
+    _name = 'car.modele'
+    _description = "Modele de voitures"
+    _order = "marque_id,name"
+    _columns = {
+        'name': fields.char("Modele", size=64),
+        'marque_id': fields.many2one('car.marque', 'Marque'),
+    }
+    _sql_constraints = [
+        ('uniq_name', 'unique(name)', "The Name must be unique"),
+    ]
+        
+car_modele()
+
 class mrp_repair(osv.osv):
     _name = 'mrp.repair'
     _description = 'Repair Order'
     
     def _amount_untaxed(self, cr, uid, ids, field_name, arg, context=None):
-        """ Calculates untaxed amount.
-        @param self: The object pointer
-        @param cr: The current row, from the database cursor,
-        @param uid: The current user ID for security checks
-        @param ids: List of selected IDs
-        @param field_name: Name of field.
-        @param arg: Argument
-        @param context: A standard dictionary for contextual values
-        @return: Dictionary of values.
-        """
+
         res = {}
         cur_obj = self.pool.get('res.currency')
 
@@ -55,11 +76,7 @@ class mrp_repair(osv.osv):
         return res
 
     def _amount_tax(self, cr, uid, ids, field_name, arg, context=None):
-        """ Calculates taxed amount.
-        @param field_name: Name of field.
-        @param arg: Argument
-        @return: Dictionary of values.
-        """
+
         res = {}
         #return {}.fromkeys(ids, 0)
         cur_obj = self.pool.get('res.currency')
@@ -115,8 +132,8 @@ class mrp_repair(osv.osv):
 
     _columns = {
         'name': fields.char('Repair Reference',size=24, required=True),
-        'marque': fields.char('Marque',size=24),
-        'modele': fields.char('Modele',size=24),
+        'marque': fields.many2one('car.marque','Marque'),
+        'modele': fields.many2one('car.modele','Modele'),
         'matricule': fields.char('Matricule',size=24),
         'kilometrage': fields.char('Kilometrage',size=24),
         'symptomes': fields.char('Symptomes',size=255),
@@ -184,7 +201,7 @@ class mrp_repair(osv.osv):
         ('uniq_name', 'unique(name)', "The Name must be unique"),
     ]
     
-    def copy(self, cr, uid, id, default=None, context=None):
+    def copy(self, cr, uid, ids, default=None, context=None):
         if not default:
             default = {}
         default.update({
@@ -195,18 +212,13 @@ class mrp_repair(osv.osv):
             'picking_id': False,
             'name': self.pool.get('ir.sequence').get(cr, uid, 'mrp.repair'),
         })
-        return super(mrp_repair, self).copy(cr, uid, id, default, context)
+        return super(mrp_repair, self).copy(cr, uid, ids, default, context)
 
     def button_dummy(self, cr, uid, ids, context=None):
         return True
 
     def onchange_partner_id(self, cr, uid, ids, part):
-        """ On change of partner sets the values of partner address,
-        partner invoice address and pricelist.
-        @param part: Changed id of partner.
-        @param address_id: Address id from current record.
-        @return: Dictionary of values.
-        """
+        
         part_obj = self.pool.get('res.partner')
         pricelist_obj = self.pool.get('product.pricelist')
         if not part:
@@ -255,9 +267,6 @@ class mrp_repair(osv.osv):
                 self.write(cr, uid, [o.id], {'state': 'confirmed'})
                 if not o.operations:
                     raise osv.except_osv(_('Error !'),_('You cannot confirm a repair order which has no line.'))
-                for line in o.operations:
-                    if line.product_id.track_production and not line.prodlot_id:
-                        raise osv.except_osv(_('Warning'), _("Production lot is required for opration line with product '%s'") % (line.product_id.name))
                 mrp_line_obj.write(cr, uid, [l.id for l in o.operations], {'state': 'confirmed'})
         return True
 
@@ -441,7 +450,6 @@ class mrp_repair(osv.osv):
                         'location_id': move.location_id.id,
                         'location_dest_id': move.location_dest_id.id,
                         'tracking_id': False,
-                        'prodlot_id': move.prodlot_id and move.prodlot_id.id or False,
                         'state': 'done',
                     })
                     repair_line_obj.write(cr, uid, [move.id], {'move_id': move_id, 'state': 'done'}, context=context)
@@ -538,7 +546,6 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
         'tax_id': fields.many2many('account.tax', 'repair_operation_line_tax', 'repair_operation_line_id', 'tax_id', 'Taxes'),
         'product_uom_qty': fields.float('Quantity (UoM)', digits=(16,2), required=True),
         'product_uom': fields.many2one('product.uom', 'Product UoM', required=True),
-        'prodlot_id': fields.many2one('stock.production.lot', 'Lot Number',domain="[('product_id','=',product_id)]"),
         'invoice_line_id': fields.many2one('account.invoice.line', 'Invoice Line', readonly=True),
         'location_id': fields.many2one('stock.location', 'Source Location', select=True),
         'location_dest_id': fields.many2one('stock.location', 'Dest. Location', select=True),
@@ -554,12 +561,12 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
                         \n* The \'Cancelled\' state is set automatically when user cancel repair order.'),
     }
     _defaults = {
-     'state': lambda *a: 'draft',
-     'product_uom_qty': lambda *a: 1,
-     'location_id': lambda *a: 12,
-     'location_dest_id': lambda *a: 11,
-     'to_invoice': lambda *a: True,
-     'type': lambda *a: 'add',
+     'state': 'draft',
+     'product_uom_qty':  1,
+     'location_id': 12,
+     'location_dest_id': 11,
+     'to_invoice': True,
+     'type': 'add',
     }
     
     def _quantity_exists_in_warehouse(self, cr, uid, ids, context=None):
@@ -568,19 +575,16 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
             return False
         return True
     
-    def _product_warehouse_user(self, cr, uid, ids, context=None):
-        
+    def _product_warehouse_user(self, cr, uid, ids, context=None):        
         user_obj = self.pool.get('res.users')
         user = user_obj.browse(cr, uid, uid, context=context)
-
         group_ids = []
         for grp in user.groups_id:
             group_ids.append(grp.id)
         repair_line = self.browse(cr, uid, ids[0], context=context)
         # 21 is the id of warehouse managment group
         if repair_line.product_id.type  in ('service') or (21 in group_ids) :
-            return True
-                
+            return True                
         return False
         
     _constraints = [
