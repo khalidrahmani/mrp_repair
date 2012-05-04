@@ -191,9 +191,9 @@ class mrp_repair(osv.osv):
     }
 
     _defaults = {
-        'state': lambda *a: 'draft',
+        'state': 'draft',
         'name': lambda obj, cr, uid, context: obj.pool.get('ir.sequence').get(cr, uid, 'mrp.repair'),
-        'invoice_method': lambda *a: 'after_repair',
+        'invoice_method': 'after_repair',
         'company_id': lambda self, cr, uid, context: self.pool.get('res.company')._company_default_get(cr, uid, 'mrp.repair', context=context),
         'pricelist_id': lambda self, cr, uid,context : self.pool.get('product.pricelist').search(cr, uid, [('type','=','sale')])[0]
     }
@@ -578,18 +578,18 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
     def _product_warehouse_user(self, cr, uid, ids, context=None):        
         user_obj = self.pool.get('res.users')
         user = user_obj.browse(cr, uid, uid, context=context)
-        group_ids = []
+        group_names = []
         for grp in user.groups_id:
-            group_ids.append(grp.id)
+            group_names.append(grp.name)
         repair_line = self.browse(cr, uid, ids[0], context=context)
         # 21 is the id of warehouse managment group
-        if repair_line.product_id.type  in ('service') or (21 in group_ids) :
+        if repair_line.product_id.type  in ('service') or ("Magasinier" in group_names) :
             return True                
         return False
         
     _constraints = [
         (_quantity_exists_in_warehouse,'Error: The quantity does not exist in warehouse.', ['product_uom_qty']),
-        (_product_warehouse_user,'Error: Only Warehouse manager ca add products.', ['product_id'])
+        (_product_warehouse_user,'Error: L\'Ordre de Reparation contient des pieces de rechange, seul le magasinier peut faire cette operation.', ['product_id'])
     ]
     
 mrp_repair_line()

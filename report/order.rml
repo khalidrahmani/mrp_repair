@@ -190,9 +190,9 @@
           <para style="P3">
             <font color="white"> </font>
           </para>
-          <para style="P13">Invoice address :</para>
-          <para style="P3">[[ o.partner_id and o.partner_id.property_payment_term.name ]]</para>
-          <para style="P3">[[ o.partner_invoice_id and display_address(o.partner_invoice_id) ]] </para>
+          <para style="P13">Client :</para>
+          <para style="P3">[[ o.partner_id.name or removeParentNode('para') ]]</para>
+          <para style="P3">[[ o.default_address_id and display_address(o.default_address_id) ]]</para>
         </td>
         <td>
           <para style="P12">
@@ -200,8 +200,9 @@
           </para>
         </td>
         <td>
-          <para style="P3">[[ o.partner_id.name or removeParentNode('para') ]]</para>
-          <para style="P3">[[ o.default_address_id and display_address(o.default_address_id) ]] </para>
+          <para style="P13"> </para>
+          <para style="P3"> </para>
+          <para style="P3">  </para>
           <para style="P3">
             <font color="white"> </font>
           </para>
@@ -231,10 +232,10 @@
     <para style="P7">
       <font color="white"> </font>
     </para>
-    <blockTable colWidths="130.0,136.0,136.0,136.0" style="Table2">
+    <blockTable colWidths="178.0,120.0,120.0,120.0" style="Table2">
       <tr>
         <td>
-          <para style="P15">Product to Repair </para>
+          <para style="P15"> Voiture </para>
         </td>
         <td>
           <para style="P15"> </para>
@@ -247,10 +248,10 @@
         </td>
       </tr>
     </blockTable>
-    <blockTable colWidths="130.0,136.0,136.0,136.0" style="Table3">
+    <blockTable colWidths="178.0,120.0,120.0,120.0" style="Table3">
       <tr>
         <td>
-          <para style="P16">[[ o.marque or '' ]] [[ o.modele or '' ]]  [[ o.matricule or '' ]]</para>
+          <para style="P16">[[ o.marque.name or '' ]] [[ o.modele.name or '' ]]  [[ o.matricule or '' ]]</para>
         </td>
         <td>
           <para style="P16"> </para>
@@ -269,7 +270,7 @@
     <para style="P12">
       <font color="white"> </font>
     </para>
-    <blockTable colWidths="254.0,100.0,60.0,60.0,60.0" repeatRows="1" style="Table4">
+    <blockTable colWidths="234.0,100.0,60.0,60.0,80.0" repeatRows="1" style="Table4">
       <tr>
         <td>
           <para style="terp_tblheader_Details">Description</para>
@@ -281,7 +282,7 @@
           <para style="terp_tblheader_Details_Right">Quantity</para>
         </td>
         <td>
-          <para style="terp_tblheader_Details_Right">Unit Price</para>
+          <para style="terp_tblheader_Details_Right"> PU </para>
         </td>
         <td>
           <para style="terp_tblheader_Details_Right">Price</para>
@@ -291,7 +292,7 @@
     <section>
       <para style="P30"><font color="white">[[ repeatIn(o.operations,'line') ]] </font></para>
       <para style="P29">[[ (not line) and removeParentNode('section') ]]</para>
-      <blockTable colWidths="254.0,100.0,60.0,60.0,60.0" style="Table5">[[ (line.to_invoice==True) or removeParentNode('blockTable') ]]
+      <blockTable colWidths="234.0,100.0,60.0,60.0,80.0" style="Table5">[[ (line.to_invoice==True) or removeParentNode('blockTable') ]]
         <tr>
           <td>
             <para style="terp_default_9"><font> [[ line.name ]]</font></para>          	
@@ -337,7 +338,7 @@
       </tr>
     </blockTable>
     </section>
-    <blockTable colWidths="404.0,67.0,64.0" style="Table9">
+    <blockTable colWidths="394.0,67.0,74.0" style="Table9">
       <tr>
         <td>
           <para style="P28">

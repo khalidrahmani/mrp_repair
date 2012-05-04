@@ -37,7 +37,7 @@
                     <field name="partner_id" on_change="onchange_partner_id(partner_id)"/>                    
                 </group>
                 <notebook colspan="4">
-                    <page string="Operations">
+                    <page string="Operations" groups="mrp_repair.group_magasinier,mrp_repair.group_atelier">
                         <field colspan="4" mode="tree,form" name="operations" nolabel="1" widget="one2many_list">
                             <form string="Operations">
                                 <notebook>
