@@ -56,6 +56,16 @@ class car_modele(osv.osv):
         
 car_modele()
 
+class car_symptomes(osv.osv):
+    _name = "car.symptomes"
+    _description = "Car Symptomes"
+    _columns = {
+        'name' : fields.char('Symptome', size=64, required=True),        
+        'product_id': fields.many2one('mrp.repair', 'Repair Order', ondelete='cascade'),
+    }
+car_symptomes()
+
+
 class mrp_repair(osv.osv):
     _name = 'mrp.repair'
     _description = 'Repair Order'
@@ -135,11 +145,15 @@ class mrp_repair(osv.osv):
         'marque': fields.many2one('car.marque','Marque'),
         'modele': fields.many2one('car.modele','Modele'),
         'matricule': fields.char('Matricule',size=24),
+        'chassis': fields.char('Chassis',size=24),
+        'telephone': fields.char('Telephone',size=24),        
         'kilometrage': fields.char('Kilometrage',size=24),
-        'symptomes': fields.char('Symptomes',size=255),
+        'mec': fields.date('Mise en circulation'),
         'partner_id' : fields.many2one('res.partner', 'Partner', select=True, help='This field allow you to choose the parner that will be invoiced and delivered'),
         'address_id': fields.many2one('res.partner.address', 'Delivery Address', domain="[('partner_id','=',partner_id)]"),
         'default_address_id': fields.function(_get_default_address, type="many2one", relation="res.partner.address"),
+        'create_date2': fields.datetime('Date'),
+        'symptomes_ids': fields.one2many('car.symptomes', 'product_id', 'Symptomes'),
         'state': fields.selection([
             ('draft','Quotation'),
             ('confirmed','Confirmed'),
@@ -168,8 +182,7 @@ class mrp_repair(osv.osv):
         'invoice_id': fields.many2one('account.invoice', 'Invoice', readonly=True),
         'picking_id': fields.many2one('stock.picking', 'Picking',readonly=True),
         'fees_lines': fields.one2many('mrp.repair.fee', 'repair_id', 'Fees Lines', readonly=True, states={'draft':[('readonly',False)]}),
-        'internal_notes': fields.text('Internal Notes'),
-        'quotation_notes': fields.text('Quotation Notes'),
+        'quotation_notes': fields.text('Symptomes'),        
         'company_id': fields.many2one('res.company', 'Company'),
         'invoiced': fields.boolean('Invoiced', readonly=True),
         'repaired': fields.boolean('Repaired', readonly=True),
@@ -178,7 +191,7 @@ class mrp_repair(osv.osv):
                 'mrp.repair': (lambda self, cr, uid, ids, c={}: ids, ['operations'], 10),
                 'mrp.repair.line': (_get_lines, ['price_unit', 'price_subtotal', 'product_id', 'tax_id', 'product_uom_qty', 'product_uom'], 10),
             }),
-        'amount_tax': fields.function(_amount_tax, string='Taxes',
+        'amount_tax': fields.function(_amount_tax, string='TVA',
             store={
                 'mrp.repair': (lambda self, cr, uid, ids, c={}: ids, ['operations'], 10),
                 'mrp.repair.line': (_get_lines, ['price_unit', 'price_subtotal', 'product_id', 'tax_id', 'product_uom_qty', 'product_uom'], 10),
@@ -191,6 +204,7 @@ class mrp_repair(osv.osv):
     }
 
     _defaults = {
+        'create_date2': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'state': 'draft',
         'name': lambda obj, cr, uid, context: obj.pool.get('ir.sequence').get(cr, uid, 'mrp.repair'),
         'invoice_method': 'after_repair',
@@ -233,7 +247,8 @@ class mrp_repair(osv.osv):
         pricelist = partner.property_product_pricelist and partner.property_product_pricelist.id or False
         return {'value': {
                     'partner_invoice_id': addr['invoice'],
-                    'pricelist_id': pricelist
+                    'pricelist_id': pricelist,
+                    'telephone': partner.phone
                 }
         }
 
@@ -278,6 +293,23 @@ class mrp_repair(osv.osv):
         for repair in self.browse(cr, uid, ids, context=context):
             mrp_line_obj.write(cr, uid, [l.id for l in repair.operations], {'state': 'cancel'}, context=context)
         self.write(cr,uid,ids,{'state':'cancel'})
+        move_obj = self.pool.get('stock.move')
+        repair_line_obj = self.pool.get('mrp.repair.line')
+        for repair in self.browse(cr, uid, ids, context=context):
+            for move in repair.operations:
+                if move.product_id.type  in ('product', 'consu'):
+                    move_id = move_obj.create(cr, uid, {
+                        'name': move.name,
+                        'product_id': move.product_id.id,
+                        'product_qty': move.product_uom_qty,
+                        'product_uom': move.product_uom.id,
+                        'address_id': repair.address_id and repair.address_id.id or False,
+                        'location_id': move.location_dest_id.id,
+                        'location_dest_id': move.location_id.id,
+                        'tracking_id': False,
+                        'state': 'done',
+                    })
+                    repair_line_obj.write(cr, uid, [move.id], {'move_id': move_id, 'state': 'done'}, context=context)        
         return True
 
     def wkf_invoice_create(self, cr, uid, ids, *args):
@@ -396,7 +428,7 @@ class mrp_repair(osv.osv):
         for repair in self.browse(cr, uid, ids, context=context):
             self.pool.get('mrp.repair.line').write(cr, uid, [l.id for
                     l in repair.operations], {'state': 'confirmed'}, context=context)
-            self.write(cr, uid, [repair.id], {'state': 'ready'})
+            self.write(cr, uid, [repair.id], {'state': 'ready'})         
         return True
 
     def action_repair_start(self, cr, uid, ids, context=None):
@@ -408,6 +440,23 @@ class mrp_repair(osv.osv):
             repair_line.write(cr, uid, [l.id for
                     l in repair.operations], {'state': 'confirmed'}, context=context)
             repair.write({'state': 'under_repair'})
+        move_obj = self.pool.get('stock.move')
+        repair_line_obj = self.pool.get('mrp.repair.line')
+        for repair in self.browse(cr, uid, ids, context=context):
+            for move in repair.operations:
+                if move.product_id.type  in ('product', 'consu'):
+                    move_id = move_obj.create(cr, uid, {
+                        'name': move.name,
+                        'product_id': move.product_id.id,
+                        'product_qty': move.product_uom_qty,
+                        'product_uom': move.product_uom.id,
+                        'address_id': repair.address_id and repair.address_id.id or False,
+                        'location_id': move.location_id.id,
+                        'location_dest_id': move.location_dest_id.id,
+                        'tracking_id': False,
+                        'state': 'done',
+                    })
+                    repair_line_obj.write(cr, uid, [move.id], {'move_id': move_id, 'state': 'done'}, context=context)              
         return True
 
     def action_repair_end(self, cr, uid, ids, context=None):
@@ -436,24 +485,8 @@ class mrp_repair(osv.osv):
         @return: Picking ids.
         """
         res = {}
-        move_obj = self.pool.get('stock.move')
-        repair_line_obj = self.pool.get('mrp.repair.line')
-        for repair in self.browse(cr, uid, ids, context=context):
-            for move in repair.operations:
-                if move.product_id.type  in ('product', 'consu'):
-                    move_id = move_obj.create(cr, uid, {
-                        'name': move.name,
-                        'product_id': move.product_id.id,
-                        'product_qty': move.product_uom_qty,
-                        'product_uom': move.product_uom.id,
-                        'address_id': repair.address_id and repair.address_id.id or False,
-                        'location_id': move.location_id.id,
-                        'location_dest_id': move.location_dest_id.id,
-                        'tracking_id': False,
-                        'state': 'done',
-                    })
-                    repair_line_obj.write(cr, uid, [move.id], {'move_id': move_id, 'state': 'done'}, context=context)
-        self.write(cr, uid, [repair.id], {'state': 'done'})
+        for repair in self.browse(cr, uid, ids, context=context):         
+            self.write(cr, uid, [repair.id], {'state': 'done'})
         return res
 
 
@@ -582,7 +615,6 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
         for grp in user.groups_id:
             group_names.append(grp.name)
         repair_line = self.browse(cr, uid, ids[0], context=context)
-        # 21 is the id of warehouse managment group
         if repair_line.product_id.type  in ('service') or ("Magasinier" in group_names) :
             return True                
         return False

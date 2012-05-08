@@ -11,9 +11,6 @@
         <field name="name">Magasinier</field>
     </record>
 
-
-
-
 <!-- Multi -->
     <record model="ir.rule" id="mrp_repair_rule">
         <field name="name">mrp_repair multi-company</field>

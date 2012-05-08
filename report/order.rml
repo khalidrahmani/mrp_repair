@@ -162,27 +162,6 @@
   <images/>
   <story>
   <pto>
-  <pto_header>
-    <blockTable colWidths="254.0,100.0,60.0,60.0,60.0" repeatRows="1" style="Table4">
-      <tr>
-        <td>
-          <para style="terp_tblheader_Details">Description</para>
-        </td>
-        <td>
-          <para style="terp_tblheader_Details_Centre">VAT</para>
-        </td>
-        <td>
-          <para style="terp_tblheader_Details_Right">Quantity</para>
-        </td>
-        <td>
-          <para style="terp_tblheader_Details_Right">Unit Price</para>
-        </td>
-        <td>
-          <para style="terp_tblheader_Details_Right">Price</para>
-        </td>
-      </tr>
-    </blockTable>
-  </pto_header>
     <para style="P12">[[ repeatIn(objects,'o') ]]</para>
     <blockTable colWidths="265.0,51.0,225.0" style="Table1">
       <tr>
@@ -190,7 +169,7 @@
           <para style="P3">
             <font color="white"> </font>
           </para>
-          <para style="P13">Client :</para>
+          <para style="P3">N° Client : [[ o.partner_id.ref or removeParentNode('para') ]]</para>
           <para style="P3">[[ o.partner_id.name or removeParentNode('para') ]]</para>
           <para style="P3">[[ o.default_address_id and display_address(o.default_address_id) ]]</para>
         </td>
@@ -200,7 +179,7 @@
           </para>
         </td>
         <td>
-          <para style="P13"> </para>
+          <para style="P13">Date : [[ formatLang(o.create_date2,date_time = True) ]]</para>
           <para style="P3"> </para>
           <para style="P3">  </para>
           <para style="P3">
@@ -223,9 +202,8 @@
     </para>
     <para style="P10">
       <font color="white"> </font>
-    </para>
-    <para style="P8">[[ o.state&lt;&gt;'draft' and removeParentNode('para') ]]Repair Quotation <font face="Helvetica">N° : [[ o.name ]]</font></para>
-    <para style="P9">[[ o.state=='draft' and removeParentNode('para') ]]Repair Order N° : [[ o.name ]]</para>
+    </para>    
+    <para style="P13"> [[ (o.state!='draft')and 'Ordre de Réparation' or 'Devis' ]] N° : [[ o.name ]]</para>
     <para style="P11">
       <font color="white"> </font>
     </para>
@@ -235,54 +213,60 @@
     <blockTable colWidths="178.0,120.0,120.0,120.0" style="Table2">
       <tr>
         <td>
-          <para style="P15"> Voiture </para>
+          <para style="P15"> Vehicule </para>
         </td>
         <td>
-          <para style="P15"> </para>
+          <para style="P15"> Matricule </para>
         </td>
         <td>
-          <para style="P15"> </para>
+          <para style="P15"> Chassis </para>
         </td>
         <td>
-          <para style="P15"> Date </para>
+          <para style="P15"> Mise en circulation </para>
         </td>
       </tr>
     </blockTable>
     <blockTable colWidths="178.0,120.0,120.0,120.0" style="Table3">
       <tr>
         <td>
-          <para style="P16">[[ o.marque.name or '' ]] [[ o.modele.name or '' ]]  [[ o.matricule or '' ]]</para>
+          <para style="P16">[[ o.marque.name or '' ]] [[ o.modele.name or '' ]] </para>
         </td>
         <td>
-          <para style="P16"> </para>
+          <para style="P16">[[ o.matricule or '' ]]</para>
         </td>
         <td>
-          <para style="P16"> </para>
+          <para style="P16">[[ o.chassis or '' ]] </para>
         </td>
         <td>
-          <para style="P16">[[ formatLang(time.strftime('%Y-%m-%d'),date = True)]] </para>
+          <para style="P16">[[ formatLang(o.mec,date = True) ]]</para>
         </td>
       </tr>
     </blockTable>
     <para style="P12">
       <font color="white"> </font>
     </para>
+    <para style="P13">Symptomes : [[ (o.state=='draft') and removeParentNode('section') ]]</para>
     <para style="P12">
       <font color="white"> </font>
     </para>
-    <blockTable colWidths="234.0,100.0,60.0,60.0,80.0" repeatRows="1" style="Table4">
+    <section>    
+      <para style="P29">[[ (o.state=='draft') and removeParentNode('section') ]]</para>
+      <para style="P30"><font color="white">[[ repeatIn(o.symptomes_ids,'sympt') ]] </font></para>
+      <para style="P3"> - [[ sympt.name or '' ]]</para>
+    </section>
+    <para style="P12">
+      <font color="white"> </font>
+    </para>
+    <blockTable colWidths="304.0,90.0,60.0,80.0" repeatRows="1" style="Table4">
       <tr>
         <td>
           <para style="terp_tblheader_Details">Description</para>
         </td>
         <td>
-          <para style="terp_tblheader_Details_Centre">VAT</para>
-        </td>
-        <td>
           <para style="terp_tblheader_Details_Right">Quantity</para>
         </td>
         <td>
-          <para style="terp_tblheader_Details_Right"> PU </para>
+          <para style="terp_tblheader_Details_Right">PU </para>
         </td>
         <td>
           <para style="terp_tblheader_Details_Right">Price</para>
@@ -291,14 +275,11 @@
     </blockTable>
     <section>
       <para style="P30"><font color="white">[[ repeatIn(o.operations,'line') ]] </font></para>
-      <para style="P29">[[ (not line) and removeParentNode('section') ]]</para>
-      <blockTable colWidths="234.0,100.0,60.0,60.0,80.0" style="Table5">[[ (line.to_invoice==True) or removeParentNode('blockTable') ]]
+      <para style="P29">[[ (not line ) and removeParentNode('section') ]]</para>
+      <blockTable colWidths="304.0,90.0,60.0,80.0" style="Table5">[[ (line.to_invoice==True) or removeParentNode('blockTable') ]]
         <tr>
           <td>
             <para style="terp_default_9"><font> [[ line.name ]]</font></para>          	
-          </td>
-          <td>
-            <para style="terp_default_Centre_9">[[ ','.join(map( lambda x: x.name, line.tax_id)) ]]</para>
           </td>
           <td>
             <para style="terp_default_Right_9">[[ formatLang(line.product_uom_qty) ]] [[ line.product_uom.name ]]</para>
@@ -360,7 +341,7 @@
           </para>
         </td>
         <td>
-          <para style="terp_default_9">Taxes:</para>
+          <para style="terp_default_9">TVA 20% :</para>
         </td>
         <td>
           <para style="P26">[[ formatLang(o.amount_tax, dp='Account')]] [[ o.pricelist_id.currency_id. symbol ]]</para>
@@ -386,13 +367,6 @@
     <para style="Standard">
       <font color="white"> </font>
     </para>
-    <blockTable colWidths="534.0" style="Table8">
-      <tr>
-        <td>
-          <para style="P3">[[ format(o.quotation_notes or '') or removeParentNode('blockTable') ]]</para>
-        </td>
-      </tr>
-    </blockTable>
     <para style="P24">
       <font color="white"> </font>
     </para>
