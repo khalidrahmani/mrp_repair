@@ -49,6 +49,7 @@
                             <form string="Operations">
                                 <notebook>
                                     <page string="Repair Line">
+                                    	<field name="cr_uid" invisible="1"/>
                                         <field name="name" colspan="4"/>
                                         <field name="product_id" on_change="product_id_change(parent.pricelist_id,product_id,product_uom,product_uom_qty, parent.partner_id)"/>
                                         <field name="product_uom_qty" string="Qty" />
@@ -72,12 +73,13 @@
 
                                  </notebook>
                             </form>
-                            <tree string="Operations" editable="bottom">
-                                <field name="product_id" on_change="product_id_change(parent.pricelist_id,product_id,product_uom,product_uom_qty, parent.partner_id)"/>
-                                <field name='name'/>
-                                <field name="product_uom_qty" string="Qty"/>
-                                <field name="product_uom" string="UoM"/>
-                                <field name="price_unit"/>
+                            <tree string="Operations" editable="bottom">                           	
+                            	<field name="cr_uid" invisible="1"/>
+                                <field name="product_id" on_change="product_id_change(parent.pricelist_id,product_id,product_uom,product_uom_qty, parent.partner_id)" attrs="{'readonly':[('cr_uid','!=',uid)]}"/>
+                                <field name='name' attrs="{'readonly':[('cr_uid','!=',uid)]}"/>
+                                <field name="product_uom_qty" string="Qty" attrs="{'readonly':[('cr_uid','!=',uid)]}"/> 
+                                <field name="product_uom" string="UoM" attrs="{'readonly':[('cr_uid','!=',uid)]}"/>
+                                <field name="price_unit" attrs="{'readonly':[('cr_uid','!=',uid)]}"/>
                                 <field name="tax_id" invisible="1"/>
                                 <field name="price_subtotal"/>
                             </tree>

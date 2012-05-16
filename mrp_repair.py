@@ -566,12 +566,16 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
             cur = line.repair_id.pricelist_id.currency_id
             res[line.id] = cur_obj.round(cr, uid, cur, res[line.id])
         return res
-
+    
+    def getUser(self, cr, uid, ids, field_name, arg, context=None):
+        return uid
+    
     _columns = {
+        'cr_uid' : fields.integer('Cr Uid',required=True),        
         'name' : fields.char('Description',size=64,required=True),
         'repair_id': fields.many2one('mrp.repair', 'Repair Order Reference',ondelete='cascade', select=True),
         'type': fields.selection([('add','Add'),('remove','Remove')],'Type'),
-        'to_invoice': fields.boolean('To Invoice'),
+        'to_invoice': fields.boolean('To Invoice', readonly=True),
         'product_id': fields.many2one('product.product', 'Product', domain=[('sale_ok','=',True)], required=True),
         'invoiced': fields.boolean('Invoiced',readonly=True),
         'price_unit': fields.float('Unit Price', required=True, digits_compute= dp.get_precision('Sale Price')),
@@ -600,6 +604,7 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
      'location_dest_id': 11,
      'to_invoice': True,
      'type': 'add',
+     'cr_uid': lambda self,cr,uid,c: uid,
     }
     
     def _quantity_exists_in_warehouse(self, cr, uid, ids, context=None):
@@ -608,20 +613,8 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
             return False
         return True
     
-    def _product_warehouse_user(self, cr, uid, ids, context=None):        
-        user_obj = self.pool.get('res.users')
-        user = user_obj.browse(cr, uid, uid, context=context)
-        group_names = []
-        for grp in user.groups_id:
-            group_names.append(grp.name)
-        repair_line = self.browse(cr, uid, ids[0], context=context)
-        if repair_line.product_id.type  in ('service') or ("Magasinier" in group_names) :
-            return True                
-        return False
-        
     _constraints = [
         (_quantity_exists_in_warehouse,'Error: The quantity does not exist in warehouse.', ['product_uom_qty']),
-        (_product_warehouse_user,'Error: L\'Ordre de Reparation contient des pieces de rechange, seul le magasinier peut faire cette operation.', ['product_id'])
     ]
     
 mrp_repair_line()
