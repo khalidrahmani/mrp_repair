@@ -45,7 +45,7 @@ class car_modele(osv.osv):
     
     _name = 'car.modele'
     _description = "Modele de voitures"
-    _order = "marque_id,name"
+    _order = "name"
     _columns = {
         'name': fields.char("Modele", size=64),
         'marque_id': fields.many2one('car.marque', 'Marque'),
@@ -61,7 +61,7 @@ class car_symptomes(osv.osv):
     _description = "Car Symptomes"
     _columns = {
         'name' : fields.char('Symptome', size=64, required=True),        
-        'product_id': fields.many2one('mrp.repair', 'Repair Order', ondelete='cascade'),
+        'repair_id': fields.many2one('mrp.repair', 'Repair Order', ondelete='cascade'),
     }
 car_symptomes()
 
@@ -143,7 +143,7 @@ class mrp_repair(osv.osv):
     _columns = {
         'name': fields.char('Repair Reference',size=24, required=True),
         'marque': fields.many2one('car.marque','Marque'),
-        'modele': fields.many2one('car.modele','Modele'),
+        'modele': fields.many2one('car.modele','Modele',domain="[('marque_id','=',marque)]"),
         'matricule': fields.char('Matricule',size=24),
         'chassis': fields.char('Chassis',size=24),
         'telephone': fields.char('Telephone',size=24),        
@@ -153,7 +153,7 @@ class mrp_repair(osv.osv):
         'address_id': fields.many2one('res.partner.address', 'Delivery Address', domain="[('partner_id','=',partner_id)]"),
         'default_address_id': fields.function(_get_default_address, type="many2one", relation="res.partner.address"),
         'create_date2': fields.datetime('Date'),
-        'symptomes_ids': fields.one2many('car.symptomes', 'product_id', 'Symptomes'),
+        'symptomes_ids': fields.one2many('car.symptomes', 'repair_id', 'Symptomes'),
         'state': fields.selection([
             ('draft','Quotation'),
             ('confirmed','Confirmed'),
