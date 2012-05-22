@@ -566,10 +566,7 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
             cur = line.repair_id.pricelist_id.currency_id
             res[line.id] = cur_obj.round(cr, uid, cur, res[line.id])
         return res
-    
-    def getUser(self, cr, uid, ids, field_name, arg, context=None):
-        return uid
-    
+  
     _columns = {
         'cr_uid' : fields.integer('Cr Uid',required=True),        
         'name' : fields.char('Description',size=64,required=True),
@@ -607,6 +604,13 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
      'cr_uid': lambda self,cr,uid,c: uid,
     }
     
+    def unlink(self, cr, uid, ids, context=None):
+        repair_line = self.browse(cr, uid, ids[0], context=context)
+        if repair_line.cr_uid != uid:
+            raise osv.except_osv(_('Invalid action !'), _('Vous n\'avez pas le droit de supprimer cette ligne! "%s" ') % (repair_line.product_id.default_code))
+        osv.osv.unlink(self, cr, uid, ids, context=context)
+        return True
+        
     def _quantity_exists_in_warehouse(self, cr, uid, ids, context=None):
         repair_line = self.browse(cr, uid, ids[0], context=context)
         if repair_line.product_id.type  in ('product', 'consu') and repair_line.product_uom_qty > repair_line.product_id.virtual_available :
@@ -615,7 +619,8 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
             for product in similar_products:
                 if repair_line.product_uom_qty <= product.product_id.virtual_available:
                     x += product.product_id.default_code+","  
-            raise osv.except_osv(_('Warning !'), _('The quantity of product "%s" does not exist in warehouse. You may want use the following references "%s"') % (repair_line.product_id.default_code, x))
+            if x != ""  :      
+                raise osv.except_osv(_('Warning !'), _('The quantity of product "%s" does not exist in warehouse. You may want use the following references "%s"') % (repair_line.product_id.default_code, x))
             return False
         return True
     
