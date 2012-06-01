@@ -292,7 +292,8 @@ class mrp_repair(osv.osv):
         mrp_line_obj = self.pool.get('mrp.repair.line')
         for repair in self.browse(cr, uid, ids, context=context):
             mrp_line_obj.write(cr, uid, [l.id for l in repair.operations], {'state': 'cancel'}, context=context)
-        self.write(cr,uid,ids,{'state':'cancel'})
+        self.write(cr,uid,ids,{'state':'cancel'})        
+#        if self.is_magasinier(cr, uid, ids, context):
         move_obj = self.pool.get('stock.move')
         repair_line_obj = self.pool.get('mrp.repair.line')
         for repair in self.browse(cr, uid, ids, context=context):
@@ -311,7 +312,17 @@ class mrp_repair(osv.osv):
                     })
                     repair_line_obj.write(cr, uid, [move.id], {'move_id': move_id, 'state': 'done'}, context=context)        
         return True
-
+    
+    def is_magasinier(self, cr, uid, ids, context=None):
+        user_obj = self.pool.get('res.users')
+        user = user_obj.browse(cr, uid, uid, context=context)
+        group_names = []
+        for grp in user.groups_id:
+            group_names.append(grp.name)
+        if ("Magasinier" in group_names) :
+            return True    
+        return False
+    
     def wkf_invoice_create(self, cr, uid, ids, *args):
         return self.action_invoice_create(cr, uid, ids)
 
@@ -440,6 +451,7 @@ class mrp_repair(osv.osv):
             repair_line.write(cr, uid, [l.id for
                     l in repair.operations], {'state': 'confirmed'}, context=context)
             repair.write({'state': 'under_repair'})
+#        if self.is_magasinier(cr, uid, ids, context):    
         move_obj = self.pool.get('stock.move')
         repair_line_obj = self.pool.get('mrp.repair.line')
         for repair in self.browse(cr, uid, ids, context=context):
@@ -547,7 +559,8 @@ class ProductChangeMixin(object):
 class mrp_repair_line(osv.osv, ProductChangeMixin):
     _name = 'mrp.repair.line'
     _description = 'Repair Line'
-
+    _order = "product_id"
+    
     def copy_data(self, cr, uid, id, default=None, context=None):
         if not default: default = {}
         default.update( {'invoice_line_id': False, 'move_id': False, 'invoiced': False, 'state': 'draft'})
@@ -621,6 +634,8 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
                     x += product.product_id.default_code+","  
             if x != ""  :      
                 raise osv.except_osv(_('Warning !'), _('The quantity of product "%s" does not exist in warehouse. You may want use the following references "%s"') % (repair_line.product_id.default_code, x))
+            else :      
+                raise osv.except_osv(_('Warning !'), _('The quantity of product "%s" does not exist in warehouse.') % (repair_line.product_id.default_code))            
             return False
         return True
     
