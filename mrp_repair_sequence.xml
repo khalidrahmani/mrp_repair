@@ -11,5 +11,15 @@
             <field name="prefix">OR</field>
             <field name="padding">5</field>
         </record>
+        <record id="seq_type_product_nurwagen" model="ir.sequence.type">
+            <field name="name">Partner</field>
+            <field name="code">res.partner2</field>
+        </record>
+        <record id="seq_product_nurwagen" model="ir.sequence">
+            <field name="name">Partner</field>
+            <field name="code">res.partner2</field>
+            <field name="prefix">CL</field>
+            <field name="padding">4</field>
+        </record>
     </data>
 </openerp>

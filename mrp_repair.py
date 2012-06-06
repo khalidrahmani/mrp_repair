@@ -1,23 +1,3 @@
-# -*- coding: utf-8 -*-
-##############################################################################
-#
-#    OpenERP, Open Source Management Solution
-#    Copyright (C) 2004-2010 Tiny SPRL (<http://tiny.be>).
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
 
 from osv import fields,osv
 import netsvc
@@ -25,6 +5,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from tools.translate import _
 import decimal_precision as dp
+from lxml import etree
 
 class car_marque(osv.osv):
     
@@ -56,6 +37,19 @@ class car_modele(osv.osv):
         
 car_modele()
 
+class res_partner(osv.osv):
+    _name = 'res.partner'
+    _inherit = 'res.partner'
+    _description = 'Partner'
+  
+    _defaults = {
+        'ref': lambda obj, cr, uid, context: obj.pool.get('ir.sequence').get(cr, uid, 'res.partner2'),        
+    }
+    _sql_constraints = [
+        ('uniq_ref', 'unique(ref)', "The Reference must be unique"),
+    ]
+res_partner()
+
 class car_symptomes(osv.osv):
     _name = "car.symptomes"
     _description = "Car Symptomes"
@@ -69,7 +63,17 @@ car_symptomes()
 class mrp_repair(osv.osv):
     _name = 'mrp.repair'
     _description = 'Repair Order'
-    
+
+    def fields_view_get(self, cr, uid, view_id=None, view_type='form', context=None, toolbar=False, submenu=False):
+        res = super(mrp_repair, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=False)
+        if view_type == 'form':
+            doc = etree.XML(res['arch'])
+            nodes = doc.xpath("//field[@name='partner_id']")
+            for node in nodes:
+                node.set('readonly', '1')
+            res['arch'] = etree.tostring(doc)
+        return res
+            
     def _amount_untaxed(self, cr, uid, ids, field_name, arg, context=None):
 
         res = {}
@@ -579,7 +583,7 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
             cur = line.repair_id.pricelist_id.currency_id
             res[line.id] = cur_obj.round(cr, uid, cur, res[line.id])
         return res
-  
+       
     _columns = {
         'cr_uid' : fields.integer('Cr Uid',required=True),        
         'name' : fields.char('Description',size=64,required=True),
