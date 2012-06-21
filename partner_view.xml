@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<openerp>
+	<data>
+		<record model="ir.ui.view" id="view_partner_voiture_form">
+			<field name="name">res.partner.form.voiture</field>
+			<field name="model">res.partner</field>
+			<field name="inherit_id" ref="base.view_partner_form"/>
+			<field name="arch" type="xml">
+				<field name="lang" position="replace"/>
+				<notebook position="inside">
+					<page string="Voitures"  attrs="{'invisible':[('customer','=',False)]}">
+                        <field name="voitures_ids" colspan="4" nolabel="1">
+                            <tree string="Voitures" editable="bottom">
+                                <field name="marque"/>
+                                <field name="modele"/>
+                                <field name="matricule"/>
+                                <field name="chassis"/>
+                                <field name="kilometrage"/>
+                                <field name="mec"/>
+                            </tree>
+                        </field>
+                    </page>
+				</notebook>
+			</field>
+		</record>
+	</data>
+</openerp>

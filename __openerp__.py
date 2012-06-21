@@ -45,6 +45,7 @@ The aim is to have a complete module to manage all products repairs. The followi
         'wizard/mrp_repair_cancel_view.xml',
         'wizard/mrp_repair_make_invoice_view.xml',
         'mrp_repair_view.xml',
+        'partner_view.xml',
         'mrp_repair_workflow.xml',
         'mrp_repair_report.xml',
     ],

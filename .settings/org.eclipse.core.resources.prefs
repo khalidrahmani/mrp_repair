@@ -1,4 +1,4 @@
-#Mon Apr 09 15:25:17 WET 2012
+#Wed Jun 20 02:47:33 WET 2012
 eclipse.preferences.version=1
 encoding//report/__init__.py=utf-8
 encoding//report/order.py=utf-8
@@ -8,3 +8,4 @@ encoding//wizard/make_invoice.py=utf-8
 encoding/__init__.py=utf-8
 encoding/__openerp__.py=utf-8
 encoding/mrp_repair.py=utf-8
+encoding/partner.py=utf-8

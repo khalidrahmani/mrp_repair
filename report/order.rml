@@ -229,7 +229,7 @@
     <blockTable colWidths="178.0,120.0,120.0,120.0" style="Table3">
       <tr>
         <td>
-          <para style="P16">[[ o.marque.name or '' ]] [[ o.modele.name or '' ]] </para>
+          <para style="P16">[[ o.marque or '' ]] [[ o.modele or '' ]] </para>
         </td>
         <td>
           <para style="P16">[[ o.matricule or '' ]]</para>
@@ -257,10 +257,13 @@
     <para style="P12">
       <font color="white"> </font>
     </para>
-    <blockTable colWidths="304.0,90.0,60.0,80.0" repeatRows="1" style="Table4">
+    <blockTable colWidths="214.0,90.0,90.0,60.0,80.0" repeatRows="1" style="Table4">
       <tr>
         <td>
           <para style="terp_tblheader_Details">Description</para>
+        </td>
+        <td>
+          <para style="terp_tblheader_Details">Casier</para>
         </td>
         <td>
           <para style="terp_tblheader_Details_Right">Quantity</para>
@@ -276,14 +279,16 @@
     <section>
       <para style="P30"><font color="white">[[ repeatIn(o.operations,'line') ]] </font></para>
       <para style="P29">[[ (not line ) and removeParentNode('section') ]]</para>
-      <blockTable colWidths="304.0,90.0,60.0,80.0" style="Table5">[[ (line.to_invoice==True) or removeParentNode('blockTable') ]]
+      <blockTable colWidths="214.0,90.0,90.0,60.0,80.0" style="Table5">[[ (line.to_invoice==True) or removeParentNode('blockTable') ]]
         <tr>
           <td>
             <para style="terp_default_9"><font> [[ line.name ]]</font></para>          	
           </td>
           <td>
+            <para style="terp_default_9">[[ line.casier ]] </para>
+          </td>          
+          <td>
             <para style="terp_default_Right_9">[[ formatLang(line.product_uom_qty) ]] [[ line.product_uom.name ]]</para>
-
           </td>
           <td>
             <para style="terp_default_Right_9">[[ formatLang(line.price_unit) ]] </para>

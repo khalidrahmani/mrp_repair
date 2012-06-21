@@ -11,15 +11,25 @@
             <field name="prefix">OR</field>
             <field name="padding">5</field>
         </record>
-        <record id="seq_type_product_nurwagen" model="ir.sequence.type">
-            <field name="name">Partner</field>
-            <field name="code">res.partner2</field>
+        <record id="nur_seq_type_client" model="ir.sequence.type">
+            <field name="name">Client</field>
+            <field name="code">res.client</field>
         </record>
-        <record id="seq_product_nurwagen" model="ir.sequence">
-            <field name="name">Partner</field>
-            <field name="code">res.partner2</field>
+        <record id="nur_seq_client" model="ir.sequence">
+            <field name="name">Client</field>
+            <field name="code">res.client</field>
             <field name="prefix">CL</field>
             <field name="padding">4</field>
         </record>
+        <record id="nur_seq_type_fournisseur" model="ir.sequence.type">
+            <field name="name">Fournisseur</field>
+            <field name="code">res.fournisseur</field>
+        </record>
+        <record id="nur_seq_fournisseur" model="ir.sequence">
+            <field name="name">Fournisseur</field>
+            <field name="code">res.fournisseur</field>
+            <field name="prefix">FR</field>
+            <field name="padding">4</field>
+        </record>        
     </data>
 </openerp>

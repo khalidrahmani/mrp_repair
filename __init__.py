@@ -22,6 +22,6 @@
 import mrp_repair
 import wizard
 import report
-
+import partner
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
 

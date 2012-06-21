@@ -37,19 +37,6 @@ class car_modele(osv.osv):
         
 car_modele()
 
-class res_partner(osv.osv):
-    _name = 'res.partner'
-    _inherit = 'res.partner'
-    _description = 'Partner'
-  
-    _defaults = {
-        'ref': lambda obj, cr, uid, context: obj.pool.get('ir.sequence').get(cr, uid, 'res.partner2'),        
-    }
-    _sql_constraints = [
-        ('uniq_ref', 'unique(ref)', "The Reference must be unique"),
-    ]
-res_partner()
-
 class car_symptomes(osv.osv):
     _name = "car.symptomes"
     _description = "Car Symptomes"
@@ -59,18 +46,129 @@ class car_symptomes(osv.osv):
     }
 car_symptomes()
 
+class mrp_car(osv.osv):
+    
+    _name = 'mrp.car'
+    _description = "Voitures"
+    
+    def _car_name(self, cr, uid, ids, field_name, arg, context=None):
+        res = {}
+        for car in self.browse(cr, uid, ids, context=context):            
+            res[car.id] = car.marque.name + " " +car.modele.name + " " +car.chassis
+        return res        
+        
+    _columns = {
+        'name': fields.function(_car_name, string='Name', readonly=True),                
+        'marque': fields.many2one('car.marque','Marque'),
+        'modele': fields.many2one('car.modele','Modele',domain="[('marque_id','=',marque)]"),
+        'matricule': fields.char('Matricule',size=24),
+        'chassis': fields.char('Chassis',size=24),
+        'kilometrage': fields.char('Kilometrage',size=24),
+        'mec': fields.date('Mise en circulation'),        
+        'partner_id': fields.many2one('res.partner', 'Partner', ondelete='cascade'),        
+    }
+    _sql_constraints = [
+        ('uniq_name', 'unique(name)', "The Name must be unique"),
+    ]
+        
+mrp_car()
 
 class mrp_repair(osv.osv):
     _name = 'mrp.repair'
     _description = 'Repair Order'
 
     def fields_view_get(self, cr, uid, view_id=None, view_type='form', context=None, toolbar=False, submenu=False):
+        if context is None: context = {}       
         res = super(mrp_repair, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=False)
-        if view_type == 'form':
-            doc = etree.XML(res['arch'])
-            nodes = doc.xpath("//field[@name='partner_id']")
-            for node in nodes:
-                node.set('readonly', '1')
+        x = "%(rrr)d"
+        assert False, x
+        doc = etree.XML(res['arch'])
+        #active_model = context.get('active_model')
+  
+#            record_id = context and context.get('active_id', False) or False
+#            assert record_id, (context)      
+#        if not record_id or (active_model and active_model != 'mrp.repair'):
+#            return res
+        
+        #repair_order = self.pool.get('mrp.repair').browse(cr, uid, record_id, context=context)
+        
+        if view_type == 'form' :         
+            res['arch'] = """ <form string="Repairs order">
+                <group col="6" colspan="4">
+                    <field name="name" readonly="1"/>
+                    <field name="partner_id" on_change="onchange_partner_id(partner_id)"/>       
+                    <field name="vehicule" on_change="onchange_vehicule(vehicule)"/>
+                    <field name="marque"/>   
+                    <field name="modele"/>
+                    <field name="matricule"/>
+                    <field name="kilometrage"/>
+                    <field name="chassis"/>
+                    <field name="mec"/>
+                    <newline/>                                 
+                    <field name="telephone"/>
+                    <field name="create_date2"/>
+                    <newline/>
+                    <field name="repaired"/>
+                    <field name="invoiced"/>  
+                </group>
+                <notebook colspan="4">
+                    <page string="Operations" groups="mrp_repair.group_magasinier,mrp_repair.group_atelier">
+                        <field colspan="4" mode="tree" name="operations" nolabel="1" widget="one2many_list">
+                            <tree string="Operations" editable="bottom">                               
+                                <field name="cr_uid" invisible="1"/>
+                                <field name="product_id" on_change="product_id_change(parent.pricelist_id,product_id,product_uom,product_uom_qty, parent.partner_id)" attrs="{'readonly':[('cr_uid','!=','%s')]}"/>
+                                <field name="name" attrs="{'readonly':[('cr_uid','!=','%s')]}"/>
+                                <field name="casier" attrs="{'readonly':[('cr_uid','!=','%s')]}"/>
+                                <field name="product_uom_qty" string="Qty" attrs="{'readonly':[('cr_uid','!=','%s')]}"/>
+                                <field name="product_uom" string="UoM" attrs="{'readonly':[('cr_uid','!=','%s')]}"/>
+                                <field name="price_unit" attrs="{'readonly':[('cr_uid','!=','%s')]}"/>
+                                <field name="tax_id" invisible="1"/>
+                                <field name="price_subtotal"/>
+                            </tree>
+                        </field>
+                        <newline/>
+                        <group col="7" colspan="4">
+                            <field name="amount_untaxed" sum="Untaxed amount"/>
+                            <field name="amount_tax"/>
+                            <field name="amount_total" sum="Total amount"/>
+                            <button name="button_dummy" states="draft" string="Compute" type="object" icon="terp-stock_format-scientific"/>
+                        </group>
+                        """ % (str(uid), str(uid), str(uid), str(uid), str(uid), str(uid))
+                        
+            res['arch'] += """ <separator string="" colspan="4"/>
+                        <group col="13" colspan="4">
+                            <field name="state"/>
+                            <button name="%(action_cancel_repair)d" states="2binvoiced,under_repair" string="Modifier la Reparation" type="action" icon="gtk-stop"/>
+                            <button name="%(action_cancel_repair)d" states="invoice_except" string="Modifier la Reparation" type="action" icon="gtk-stop"/>
+                            <button name="action_cancel_draft" states="cancel" string="Set to Draft" type="object" icon="gtk-convert"/>
+                            <button name="repair_confirm" states="draft" string="Confirm Repair" icon="terp-camera_test"/>
+                            <button name="repair_ready" states="confirmed" string="Start Repair" icon="terp-gtk-jump-to-ltr"/>
+                            <button name="action_repair_start" states="ready" string="Start Repair" icon="terp-gtk-jump-to-ltr"/>
+                            <button name="action_repair_end" states="under_repair" string="End Repair" icon="terp-dialog-close"/>
+                            <button name="invoice_recreate" states="invoice_except" string="Recreate Invoice" icon="terp-dolar"/>
+                            <button name="invoice_corrected" states="invoice_except" string="Invoice Corrected" icon="terp-emblem-important"/>
+                            <button name="action_invoice_create" states="2binvoiced" string="Make Invoice" icon="terp-dolar"/>
+                        </group>
+                    </page>
+                    <page string="Invoicing">
+                        <field name="invoice_method" colspan="4"  readonly="1"/>
+                        <field name="pricelist_id" readonly="1"/>
+                        <field name="partner_invoice_id" />                        
+                    </page>
+                    <page string="Symptomes">
+                        <field name="symptomes_ids" colspan="4" nolabel="1">
+                            <tree string="Symptomes" editable="bottom">
+                                <field name="name"/>
+                            </tree>
+                        </field>
+                    </page>
+                </notebook>
+            </form> """ 
+            
+            doc = etree.fromstring(res['arch'].encode('utf8'))
+            xarch, xfields = self._view_look_dom_arch(cr, uid, doc, view_id, context=context)
+            res['arch'] = xarch
+            res['fields'] = xfields
             res['arch'] = etree.tostring(doc)
         return res
             
@@ -142,18 +240,19 @@ class mrp_repair(osv.osv):
         result = {}
         for line in self.pool.get('mrp.repair.line').browse(cr, uid, ids, context=context):
             result[line.repair_id.id] = True
-        return result.keys()
-
+        return result.keys()   
+    
     _columns = {
         'name': fields.char('Repair Reference',size=24, required=True),
-        'marque': fields.many2one('car.marque','Marque'),
-        'modele': fields.many2one('car.modele','Modele',domain="[('marque_id','=',marque)]"),
+        'partner_id' : fields.many2one('res.partner', 'Partner', select=True, help='This field allow you to choose the parner that will be invoiced and delivered'),
+        'vehicule': fields.many2one('mrp.car','Vehicule',domain="[('partner_id','=',partner_id)]"),
+        'marque': fields.char('Marque',size=24),
+        'modele': fields.char('Modele',size=24),
         'matricule': fields.char('Matricule',size=24),
         'chassis': fields.char('Chassis',size=24),
         'telephone': fields.char('Telephone',size=24),        
         'kilometrage': fields.char('Kilometrage',size=24),
-        'mec': fields.date('Mise en circulation'),
-        'partner_id' : fields.many2one('res.partner', 'Partner', select=True, help='This field allow you to choose the parner that will be invoiced and delivered'),
+        'mec': fields.date('Mise en circulation'),        
         'address_id': fields.many2one('res.partner.address', 'Delivery Address', domain="[('partner_id','=',partner_id)]"),
         'default_address_id': fields.function(_get_default_address, type="many2one", relation="res.partner.address"),
         'create_date2': fields.datetime('Date'),
@@ -174,7 +273,7 @@ class mrp_repair(osv.osv):
             \n* The \'To be Invoiced\' state is used to generate the invoice before or after repairing done. \
             \n* The \'Done\' state is set when repairing is completed.\
             \n* The \'Cancelled\' state is used when user cancel repair order.'),
-        'operations' : fields.one2many('mrp.repair.line', 'repair_id', 'Operation Lines', readonly=True, states={'draft':[('readonly',False)]}),
+        'operations' : fields.one2many('mrp.repair.line', 'repair_id', 'Operation Lines', readonly=True, states={'draft':[('readonly', False)]}),
         'pricelist_id': fields.many2one('product.pricelist', 'Pricelist', help='The pricelist comes from the selected partner, by default.'),
         'partner_invoice_id':fields.many2one('res.partner.address', 'Invoicing Address',  domain="[('partner_id','=',partner_id)]"),
         'invoice_method':fields.selection([
@@ -255,7 +354,21 @@ class mrp_repair(osv.osv):
                     'telephone': partner.phone
                 }
         }
-
+        
+    def onchange_vehicule(self, cr, uid, ids, car):
+        
+        car_obj = self.pool.get('mrp.car')       
+        vehicule = car_obj.browse(cr, uid, car)        
+        return {'value': {
+                    'chassis': vehicule.chassis,
+                    'marque': vehicule.marque.name,
+                    'modele': vehicule.modele.name,
+                    'kilometrage': vehicule.kilometrage,
+                    'matricule': vehicule.matricule,                    
+                    'mec': vehicule.mec
+                }
+        }
+        
     def action_cancel_draft(self, cr, uid, ids, *args):
         """ Cancels repair order when it is in 'Draft' state.
         @param *arg: Arguments
@@ -535,6 +648,7 @@ class ProductChangeMixin(object):
                 result['tax_id'] = self.pool.get('account.fiscal.position').map_tax(cr, uid, partner.property_account_position, product_obj.taxes_id)
 
             result['name'] = product_obj.partner_ref
+            result['casier'] = product_obj.casier
             result['product_uom'] = product_obj.uom_id and product_obj.uom_id.id or False
             if not pricelist:
                 warning = {
@@ -587,6 +701,7 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
     _columns = {
         'cr_uid' : fields.integer('Cr Uid',required=True),        
         'name' : fields.char('Description',size=64,required=True),
+        'casier' : fields.char('Casier',size=64),
         'repair_id': fields.many2one('mrp.repair', 'Repair Order Reference',ondelete='cascade', select=True),
         'type': fields.selection([('add','Add'),('remove','Remove')],'Type'),
         'to_invoice': fields.boolean('To Invoice', readonly=True),
