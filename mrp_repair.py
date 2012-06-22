@@ -80,40 +80,12 @@ class mrp_repair(osv.osv):
     def fields_view_get(self, cr, uid, view_id=None, view_type='form', context=None, toolbar=False, submenu=False):
         if context is None: context = {}       
         res = super(mrp_repair, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=False)
-        x = "%(rrr)d"
-        assert False, x
-        doc = etree.XML(res['arch'])
-        #active_model = context.get('active_model')
-  
-#            record_id = context and context.get('active_id', False) or False
-#            assert record_id, (context)      
-#        if not record_id or (active_model and active_model != 'mrp.repair'):
-#            return res
-        
-        #repair_order = self.pool.get('mrp.repair').browse(cr, uid, record_id, context=context)
-        
-        if view_type == 'form' :         
-            res['arch'] = """ <form string="Repairs order">
-                <group col="6" colspan="4">
-                    <field name="name" readonly="1"/>
-                    <field name="partner_id" on_change="onchange_partner_id(partner_id)"/>       
-                    <field name="vehicule" on_change="onchange_vehicule(vehicule)"/>
-                    <field name="marque"/>   
-                    <field name="modele"/>
-                    <field name="matricule"/>
-                    <field name="kilometrage"/>
-                    <field name="chassis"/>
-                    <field name="mec"/>
-                    <newline/>                                 
-                    <field name="telephone"/>
-                    <field name="create_date2"/>
-                    <newline/>
-                    <field name="repaired"/>
-                    <field name="invoiced"/>  
-                </group>
-                <notebook colspan="4">
-                    <page string="Operations" groups="mrp_repair.group_magasinier,mrp_repair.group_atelier">
-                        <field colspan="4" mode="tree" name="operations" nolabel="1" widget="one2many_list">
+        if view_type == 'form':
+            root = etree.fromstring(unicode(res['arch'], 'utf8'))            
+            nodes = root.xpath("//field[@name='operations']")
+
+            u =  """
+            <field colspan="4" mode="tree" name="operations" nolabel="1" widget="one2many_list">
                             <tree string="Operations" editable="bottom">                               
                                 <field name="cr_uid" invisible="1"/>
                                 <field name="product_id" on_change="product_id_change(parent.pricelist_id,product_id,product_uom,product_uom_qty, parent.partner_id)" attrs="{'readonly':[('cr_uid','!=','%s')]}"/>
@@ -126,52 +98,18 @@ class mrp_repair(osv.osv):
                                 <field name="price_subtotal"/>
                             </tree>
                         </field>
-                        <newline/>
-                        <group col="7" colspan="4">
-                            <field name="amount_untaxed" sum="Untaxed amount"/>
-                            <field name="amount_tax"/>
-                            <field name="amount_total" sum="Total amount"/>
-                            <button name="button_dummy" states="draft" string="Compute" type="object" icon="terp-stock_format-scientific"/>
-                        </group>
-                        """ % (str(uid), str(uid), str(uid), str(uid), str(uid), str(uid))
-                        
-            res['arch'] += """ <separator string="" colspan="4"/>
-                        <group col="13" colspan="4">
-                            <field name="state"/>
-                            <button name="%(action_cancel_repair)d" states="2binvoiced,under_repair" string="Modifier la Reparation" type="action" icon="gtk-stop"/>
-                            <button name="%(action_cancel_repair)d" states="invoice_except" string="Modifier la Reparation" type="action" icon="gtk-stop"/>
-                            <button name="action_cancel_draft" states="cancel" string="Set to Draft" type="object" icon="gtk-convert"/>
-                            <button name="repair_confirm" states="draft" string="Confirm Repair" icon="terp-camera_test"/>
-                            <button name="repair_ready" states="confirmed" string="Start Repair" icon="terp-gtk-jump-to-ltr"/>
-                            <button name="action_repair_start" states="ready" string="Start Repair" icon="terp-gtk-jump-to-ltr"/>
-                            <button name="action_repair_end" states="under_repair" string="End Repair" icon="terp-dialog-close"/>
-                            <button name="invoice_recreate" states="invoice_except" string="Recreate Invoice" icon="terp-dolar"/>
-                            <button name="invoice_corrected" states="invoice_except" string="Invoice Corrected" icon="terp-emblem-important"/>
-                            <button name="action_invoice_create" states="2binvoiced" string="Make Invoice" icon="terp-dolar"/>
-                        </group>
-                    </page>
-                    <page string="Invoicing">
-                        <field name="invoice_method" colspan="4"  readonly="1"/>
-                        <field name="pricelist_id" readonly="1"/>
-                        <field name="partner_invoice_id" />                        
-                    </page>
-                    <page string="Symptomes">
-                        <field name="symptomes_ids" colspan="4" nolabel="1">
-                            <tree string="Symptomes" editable="bottom">
-                                <field name="name"/>
-                            </tree>
-                        </field>
-                    </page>
-                </notebook>
-            </form> """ 
-            
-            doc = etree.fromstring(res['arch'].encode('utf8'))
-            xarch, xfields = self._view_look_dom_arch(cr, uid, doc, view_id, context=context)
+            """ % (str(uid), str(uid), str(uid), str(uid), str(uid), str(uid))
+            u = etree.fromstring(unicode(u, 'utf8')) 
+            for node in nodes:
+                node.getparent().replace(node, u)
+            xarch, xfields = self._view_look_dom_arch(cr, uid, root, view_id, context=context)
             res['arch'] = xarch
-            res['fields'] = xfields
-            res['arch'] = etree.tostring(doc)
+            res['fields'] = xfields    
+            res['arch'] = etree.tostring(root)
+
+        #res['arch'] = res['arch'].replace('<separator string="operations_separator" colspan="4"/>', u)
         return res
-            
+        
     def _amount_untaxed(self, cr, uid, ids, field_name, arg, context=None):
 
         res = {}
