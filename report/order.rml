@@ -203,7 +203,7 @@
     <para style="P10">
       <font color="white"> </font>
     </para>    
-    <para style="P13"> [[ (o.state!='draft')and 'Ordre de Réparation' or 'Devis' ]] N° : [[ o.name ]]</para>
+    <para style="P13"> [[ (o.is_devis!=True)and 'Ordre de Réparation' or 'Devis' ]] N° : [[ o.name ]]</para>
     <para style="P11">
       <font color="white"> </font>
     </para>
@@ -245,12 +245,12 @@
     <para style="P12">
       <font color="white"> </font>
     </para>
-    <para style="P13">Symptomes : [[ (o.state=='draft') and removeParentNode('section') ]]</para>
+    <para style="P13">Symptomes : </para>
     <para style="P12">
       <font color="white"> </font>
     </para>
     <section>    
-      <para style="P29">[[ (o.state=='draft') and removeParentNode('section') ]]</para>
+      <para style="P29"> </para>
       <para style="P30"><font color="white">[[ repeatIn(o.symptomes_ids,'sympt') ]] </font></para>
       <para style="P3"> - [[ sympt.name or '' ]]</para>
     </section>
@@ -258,6 +258,7 @@
       <font color="white"> </font>
     </para>
     <blockTable colWidths="214.0,90.0,90.0,60.0,80.0" repeatRows="1" style="Table4">
+    [[ (o.is_devis!=True and o.state=="draft") and removeParentNode('blockTable') ]]
       <tr>
         <td>
           <para style="terp_tblheader_Details">Description</para>
@@ -277,8 +278,9 @@
       </tr>
     </blockTable>
     <section>
+    
       <para style="P30"><font color="white">[[ repeatIn(o.operations,'line') ]] </font></para>
-      <para style="P29">[[ (not line ) and removeParentNode('section') ]]</para>
+      <para style="P29">[[ (not line or (o.is_devis!=True and o.state=="draft") ) and removeParentNode('section') ]]</para>
       <blockTable colWidths="214.0,90.0,90.0,60.0,80.0" style="Table5">[[ (line.to_invoice==True) or removeParentNode('blockTable') ]]
         <tr>
           <td>
@@ -301,6 +303,7 @@
     </section>
     <para style="P29">Fees Line(s) [[ (o.fees_lines ==[] and  removeParentNode('para') )  ]]</para>
     <section>
+    [[ (o.is_devis!=True and o.state=="draft") and removeParentNode('section') ]]
     <para style="P30"><font color="white">[[ repeatIn(o.fees_lines,'fees') ]]</font></para>
     <para style="P29">[[ (not fees) and removeParentNode('section') ]]</para>
 
@@ -325,6 +328,7 @@
     </blockTable>
     </section>
     <blockTable colWidths="394.0,67.0,74.0" style="Table9">
+    [[ (o.is_devis!=True and o.state=="draft") and removeParentNode('blockTable') ]]
       <tr>
         <td>
           <para style="P28">
@@ -369,7 +373,7 @@
     <para style="P10">
       <font color="white"> </font>
     </para>    
-    <para style="P13"> [[amount_in_word(total(o))]] </para>
+    <para style="P13"> [[ (o.is_devis==False and o.state=="draft") and " " or amount_in_word(total(o)) ]] </para>
     <para style="P11">
       <font color="white"> </font>
     </para>

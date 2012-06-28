@@ -1,0 +1,119 @@
+<?xml version="1.0" ?>
+<openerp>
+	<data>
+		<record model="ir.ui.view" id="view_product_form_expiry">
+			<field name="name">product.normal.form</field>
+			<field name="model">product.product</field>
+			<field name="inherit_id" ref="product.product_normal_form_view" />
+			<field name="type">form</field>
+			<field name="arch" type="xml">
+				<notebook position="inside">
+					<page string="Voiture" groups="product_nurwagen.group_vente_voitures">
+						<separator string="Voiture" colspan="4" />
+						<field name="matricule"/>
+						<field name="kilometrage"/>
+						<field name="marque"/>
+						<field name="modele"/>
+					</page>
+				</notebook>
+				<field name="name" groups="base.group_extended" position="after">
+					<field name="casier" groups="mrp_repair.group_magasinier"/>
+					<field name="casier2" groups="mrp_repair.group_magasinier"/>
+				</field>
+				<field name="ean13" groups="base.group_extended" position="replace">
+					<field name="code_marque" groups="mrp_repair.group_magasinier"/>					
+				</field>
+				<page string="Procurement &amp; Locations" position="replace"/>
+				<page groups="base.group_extended" string="Packaging" position="replace"/>
+				<page string="Information" position="replace">
+					<page string="Information">
+						<group colspan="2" col="2">
+							<separator string="Procurement" colspan="2"/>
+							<field name="type"/>
+							<field name="supply_method" invisible="1"/>
+						</group>
+						<group colspan="2" col="2">
+							<separator string="Base Prices" colspan="2"/>
+							<field name="list_price"/>
+							<field name="cost_method" groups="base.group_extended"/>
+							<field name="standard_price" attrs="{'readonly':[('cost_method','=','average')]}" groups="base.group_extended"/>
+							<newline/>
+							<field name="price_margin" groups="product.group_product_variant"/>
+							<field name="price_extra" groups="product.group_product_variant"/>
+						</group>
+						<group colspan="2" col="2" name="status" groups="base.group_extended">
+							<separator string="Status" colspan="2"/>
+							<field name="categ_id"/>
+						</group>
+						<group colspan="2" col="2" name="uom">
+							<separator string="Unit of Measure" colspan="2"/>
+							<field name="uom_id" on_change="onchange_uom(uom_id,uom_po_id)"/>
+							<field name="uom_po_id" groups="base.group_extended"/>
+						</group>
+						<group colspan="2" col="2" name="uos" groups="product.group_uos">
+							<separator string="Second UoM" colspan="2"/>
+							<field name="uos_id"/>
+							<field name="uos_coeff"/>
+							<field name="mes_type"/>
+						</group>
+					</page>
+					<page string="Similar Products" groups="mrp_repair.group_magasinier">
+                        <field name="similar_products" colspan="4" nolabel="1">
+                            <tree string="Similar Products" editable="bottom">
+                                <field name="product_id"/>
+                            </tree>
+                        </field>
+                    </page>
+				</page>
+			</field>
+		</record>
+		<record model="ir.ui.view" id="product_search_form_nur">
+			<field name="name">product.search.form</field>
+			<field name="model">product.product</field>
+			<field name="inherit_id" ref="product.product_search_form_view" />
+			<field name="type">search</field>
+			<field name="arch" type="xml">
+				<search string="Product" position="replace">
+					<search string="Product">
+						<field name="name" filter_domain="['|', ('name','ilike',self),('default_code','ilike',self)]"/>
+						<field name="categ_id" widget="selection" operator="child_of" groups="base.group_extended"/>
+						<newline/>
+						<group expand="0" string="Context..." groups="base.group_extended">
+							<field name="pricelist_id" widget="selection" context="{'pricelist': self}"/>
+						</group>
+						<newline/>
+					</search>
+				</search>
+			</field>
+		</record>		
+		<record id="product_nur_tree_view" model="ir.ui.view">
+			<field name="name">product.product.tree</field>
+			<field name="model">product.product</field>
+			<field name="inherit_id" ref="product.product_product_tree_view" />
+			<field name="type">tree</field>
+			<field name="arch" type="xml">
+				<tree colors="red:virtual_available&lt;0;blue:virtual_available&gt;=0 and state in ('draft', 'end', 'obsolete');black:virtual_available&gt;=0 and state not in ('draft', 'end', 'obsolete')" string="Products" position="replace">
+					<tree string="Products">
+						<field name="default_code"/>
+						<field name="name"/>
+						<field name="categ_id" invisible="1"/>
+						<field name="variants" groups="product.group_product_variant"/>
+						<field name="uom_id" string="UoM"/>
+						<field name="casier"/>
+						<field name="qty_available"/>
+						<field name="virtual_available"/>
+						<field name="lst_price"/>
+						<field name="price" invisible="not context.get('pricelist',False)"/>
+						<field name="standard_price" groups="base.group_extended"/>
+						<field name="company_id" groups="base.group_multi_company" invisible="1"/>
+						<field name="modele"  groups="product_nurwagen.group_vente_voitures"/>
+					</tree>
+				</tree>
+			</field>
+		</record>
+		<menuitem name="Voitures" icon="terp-project" id="voiture_menu"/>
+		<menuitem name="Voitures" parent="voiture_menu" id="voiture_menu_mainform" />
+		<menuitem name="Voitures" id="menu_procurement_t" action="product.product_normal_action" parent="voiture_menu_mainform"/>
+	</data>
+</openerp>
+

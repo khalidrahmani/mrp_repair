@@ -46,33 +46,6 @@ class car_symptomes(osv.osv):
     }
 car_symptomes()
 
-class mrp_car(osv.osv):
-    
-    _name = 'mrp.car'
-    _description = "Voitures"
-    
-    def _car_name(self, cr, uid, ids, field_name, arg, context=None):
-        res = {}
-        for car in self.browse(cr, uid, ids, context=context):            
-            res[car.id] = car.marque.name + " " +car.modele.name + " " +car.chassis
-        return res        
-        
-    _columns = {
-        'name': fields.function(_car_name, string='Name', readonly=True),                
-        'marque': fields.many2one('car.marque','Marque'),
-        'modele': fields.many2one('car.modele','Modele',domain="[('marque_id','=',marque)]"),
-        'matricule': fields.char('Matricule',size=24),
-        'chassis': fields.char('Chassis',size=24),
-        'kilometrage': fields.char('Kilometrage',size=24),
-        'mec': fields.date('Mise en circulation'),        
-        'partner_id': fields.many2one('res.partner', 'Partner', ondelete='cascade'),        
-    }
-    _sql_constraints = [
-        ('uniq_name', 'unique(name)', "The Name must be unique"),
-    ]
-        
-mrp_car()
-
 class mrp_repair(osv.osv):
     _name = 'mrp.repair'
     _description = 'Repair Order'
@@ -85,20 +58,46 @@ class mrp_repair(osv.osv):
             nodes = root.xpath("//field[@name='operations']")
 
             u =  """
-            <field colspan="4" mode="tree" name="operations" nolabel="1" widget="one2many_list">
-                            <tree string="Operations" editable="bottom">                               
+            <field colspan="4" mode="tree,form" name="operations" nolabel="1" widget="one2many_list">
+                            <form string="Operations">
+                                <notebook>
+                                    <page string="Repair Line">
+                                     <field name="cr_uid" invisible="1"/>                                        
+                                        <field name="product_id" colspan="4" on_change="product_id_change(parent.pricelist_id,product_id,product_uom,product_uom_qty, parent.partner_id)" attrs="{'readonly':[('cr_uid','!=',%s)]}"/>
+                                        <field name="name" attrs="{'readonly':[('cr_uid','!=',%s)]}"/>
+                                        <field name="casier" attrs="{'readonly':[('cr_uid','!=',%s)]}"/>
+                                        <field name="product_uom_qty" string="Qty"  attrs="{'readonly':[('cr_uid','!=',%s)]}"/>
+                                        <field name="product_uom" string="UoM" attrs="{'readonly':[('cr_uid','!=',%s)]}"/>
+                                        <field name="price_unit" attrs="{'readonly':[('cr_uid','!=',%s)]}"/>
+                                        <field name="price_subtotal"/>
+                                        <newline/>
+                                        <group colspan="2">
+                                            <field name="to_invoice"/>
+                                            <field name="invoiced"/>
+                                        </group>
+                                        <newline/>
+                                        <field colspan="4" name="tax_id" domain="[('parent_id','=',False),('type_tax_use','&lt;&gt;','purchase')]" nolabel="1"  invisible="1"/>
+                                        <field name="state"  invisible="1"/>
+                                    </page>
+                                    <page string="History" groups="base.group_extended">
+                                        <field colspan="4" name="invoice_line_id"/>
+                                    </page>
+
+                                 </notebook>
+                            </form>            
+                            <tree string="Operations">                               
                                 <field name="cr_uid" invisible="1"/>
-                                <field name="product_id" on_change="product_id_change(parent.pricelist_id,product_id,product_uom,product_uom_qty, parent.partner_id)" attrs="{'readonly':[('cr_uid','!=','%s')]}"/>
-                                <field name="name" attrs="{'readonly':[('cr_uid','!=','%s')]}"/>
-                                <field name="casier" attrs="{'readonly':[('cr_uid','!=','%s')]}"/>
-                                <field name="product_uom_qty" string="Qty" attrs="{'readonly':[('cr_uid','!=','%s')]}"/>
-                                <field name="product_uom" string="UoM" attrs="{'readonly':[('cr_uid','!=','%s')]}"/>
-                                <field name="price_unit" attrs="{'readonly':[('cr_uid','!=','%s')]}"/>
+                                <field name="product_id"/>
+                                <field name="name"/>
+                                <field name="casier"/>
+                                <field name="product_uom_qty" string="Qty"/>
+                                <field name="product_uom" string="UoM"/>
+                                <field name="price_unit"/>
                                 <field name="tax_id" invisible="1"/>
                                 <field name="price_subtotal"/>
                             </tree>
                         </field>
-            """ % (str(uid), str(uid), str(uid), str(uid), str(uid), str(uid))
+            """ % ((uid), (uid), (uid) ,(uid), (uid), (uid))
             u = etree.fromstring(unicode(u, 'utf8')) 
             for node in nodes:
                 node.getparent().replace(node, u)
@@ -107,7 +106,6 @@ class mrp_repair(osv.osv):
             res['fields'] = xfields    
             res['arch'] = etree.tostring(root)
 
-        #res['arch'] = res['arch'].replace('<separator string="operations_separator" colspan="4"/>', u)
         return res
         
     def _amount_untaxed(self, cr, uid, ids, field_name, arg, context=None):
@@ -183,8 +181,9 @@ class mrp_repair(osv.osv):
     _columns = {
         'name': fields.char('Repair Reference',size=24, required=True),
         'partner_id' : fields.many2one('res.partner', 'Partner', select=True, help='This field allow you to choose the parner that will be invoiced and delivered'),
-        'vehicule': fields.many2one('mrp.car','Vehicule',domain="[('partner_id','=',partner_id)]"),
+        'vehicule': fields.many2one('mrp.car','Vehicule', domain="[('partner_id','=',partner_id)]"),
         'marque': fields.char('Marque',size=24),
+        'is_devis': fields.boolean('Devis'),
         'modele': fields.char('Modele',size=24),
         'matricule': fields.char('Matricule',size=24),
         'chassis': fields.char('Chassis',size=24),
@@ -252,9 +251,7 @@ class mrp_repair(osv.osv):
         'company_id': lambda self, cr, uid, context: self.pool.get('res.company')._company_default_get(cr, uid, 'mrp.repair', context=context),
         'pricelist_id': lambda self, cr, uid,context : self.pool.get('product.pricelist').search(cr, uid, [('type','=','sale')])[0]
     }
-    _sql_constraints = [
-        ('uniq_name', 'unique(name)', "The Name must be unique"),
-    ]
+
     
     def copy(self, cr, uid, ids, default=None, context=None):
         if not default:
@@ -683,7 +680,7 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
         
     def _quantity_exists_in_warehouse(self, cr, uid, ids, context=None):
         repair_line = self.browse(cr, uid, ids[0], context=context)
-        if repair_line.product_id.type  in ('product', 'consu') and repair_line.product_uom_qty > repair_line.product_id.virtual_available :
+        if repair_line.product_id.type  in ('product', 'consu') and repair_line.product_uom_qty > repair_line.product_id.virtual_available and repair_line.state !="draft":
             similar_products = repair_line.product_id.similar_products
             x = ""
             for product in similar_products:

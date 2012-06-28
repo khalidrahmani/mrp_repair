@@ -28,7 +28,7 @@
         <field name="arch" type="xml">
             <form string="Repairs order">
                 <group col="6" colspan="4">
-                    <field name="name" readonly="1"/>
+                    <field name="name"/>
                     <field name="partner_id" on_change="onchange_partner_id(partner_id)"/>       
                     <field name="vehicule" on_change="onchange_vehicule(vehicule)"/>
                     <field name="marque"/>   
@@ -43,19 +43,45 @@
                     <newline/>
                     <field name="repaired"/>
                     <field name="invoiced"/>  
+                    <field name="is_devis"/>  
                 </group>
                 <notebook colspan="4">
                     <page string="Operations" groups="mrp_repair.group_magasinier,mrp_repair.group_atelier">
-                        <field colspan="4" mode="tree" name="operations" nolabel="1" widget="one2many_list">
-                            <tree string="Operations" editable="bottom">                           	
-                            	<field name="cr_uid" invisible="1"/>
-                                <field name="product_id" on_change="product_id_change(parent.pricelist_id,product_id,product_uom,product_uom_qty, parent.partner_id)"/>
-                                <field name="name"/>
-                                <field name="casier"/>
-                                <field name="product_uom_qty" string="Qty"/> 
+                        <field colspan="4" mode="tree,form" name="operations" nolabel="1" widget="one2many_list">
+                            <form string="Operations">
+                                <notebook>
+                                    <page string="Repair Line">
+                                    	<field name="cr_uid" invisible="1"/>
+                                        <field name="name" colspan="4"/>
+                                        <field name="product_id" on_change="product_id_change(parent.pricelist_id,product_id,product_uom,product_uom_qty, parent.partner_id)" attrs="{'readonly':[('cr_uid','!=',1)]}"/>
+                                        <field name="product_uom_qty" string="Qty" />
+                                        <field name="product_uom" string="UoM"/>
+                                        <field name="price_unit"/>
+                                        <field name="price_subtotal"/>
+                                        <newline/>
+                                        <group colspan="2">
+                                            <field name="to_invoice"/>
+                                            <field name="invoiced"/>
+                                        </group>
+                                        <newline/>
+                                        <separator colspan="4" string="Taxes"/>
+                                        <field colspan="4" name="tax_id" domain="[('parent_id','=',False),('type_tax_use','&lt;&gt;','purchase')]" nolabel="1"/>
+                                        <separator colspan="4" string="States"/>
+                                        <field name="state"/>
+                                    </page>
+                                    <page string="History" groups="base.group_extended">
+                                        <field colspan="4" name="invoice_line_id"/>
+                                    </page>
+
+                                 </notebook>
+                            </form>
+                            <tree string="Operations">
+                                <field name="product_id"/>
+                                <field name='name'/>
+                                <field name="product_uom_qty" string="Qty"/>
                                 <field name="product_uom" string="UoM"/>
                                 <field name="price_unit"/>
-                                <field name="tax_id" invisible="1"/>
+                                <field name="tax_id"/>
                                 <field name="price_subtotal"/>
                             </tree>
                         </field>
@@ -69,7 +95,7 @@
                         <separator string="" colspan="4"/>
                         <group col="13" colspan="4">
                             <field name="state"/>
-                            <button name="%(action_cancel_repair)d" states="2binvoiced,under_repair" string="Modifier la Reparation" type="action" icon="gtk-stop"/>
+                            <button name="%(action_cancel_repair)d" states="confirmed,2binvoiced,under_repair" string="Modifier la Reparation" type="action" icon="gtk-stop"/>
                             <button name="%(action_cancel_repair)d" states="invoice_except" string="Modifier la Reparation" type="action" icon="gtk-stop"/>
                             <button name="action_cancel_draft" states="cancel" string="Set to Draft" type="object" icon="gtk-convert"/>
                             <button name="repair_confirm" states="draft" string="Confirm Repair" icon="terp-camera_test"/>

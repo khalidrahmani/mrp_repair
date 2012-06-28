@@ -19,9 +19,13 @@
 #
 ##############################################################################
 
-import mrp_repair
 import wizard
 import report
 import partner
+import product
+import sale
+import mrp_car
+import mrp_repair
+
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
 
