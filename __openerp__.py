@@ -49,6 +49,7 @@ The aim is to have a complete module to manage all products repairs. The followi
         'partner_view.xml',
         'product_view.xml',
         'sale_view.xml',
+        'purchase_view.xml',
         'mrp_repair_workflow.xml',
         'mrp_repair_report.xml',
     ],

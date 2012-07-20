@@ -8,12 +8,14 @@
 			<field name="type">form</field>
 			<field name="arch" type="xml">
 				<notebook position="inside">
-					<page string="Voiture" groups="product_nurwagen.group_vente_voitures">
-						<separator string="Voiture" colspan="4" />
-						<field name="matricule"/>
-						<field name="kilometrage"/>
-						<field name="marque"/>
-						<field name="modele"/>
+					<page string="Voiture" groups="mrp_repair.group_vente_voitures">
+						<field name="caracteristiques_ids" colspan="4" nolabel="1">
+                            <tree string="Caracteristiques" editable="bottom">
+                                <field name="name"/>
+                                <field name="value"/>
+                                <field name="visible"/>
+                            </tree>
+                        </field>
 					</page>
 				</notebook>
 				<field name="name" groups="base.group_extended" position="after">
@@ -23,7 +25,6 @@
 				<field name="ean13" groups="base.group_extended" position="replace">
 					<field name="code_marque" groups="mrp_repair.group_magasinier"/>					
 				</field>
-				<page string="Procurement &amp; Locations" position="replace"/>
 				<page groups="base.group_extended" string="Packaging" position="replace"/>
 				<page string="Information" position="replace">
 					<page string="Information">
@@ -99,21 +100,20 @@
 						<field name="categ_id" invisible="1"/>
 						<field name="variants" groups="product.group_product_variant"/>
 						<field name="uom_id" string="UoM"/>
-						<field name="casier"/>
+						<field name="casier" groups="mrp_repair.group_magasinier"/>
 						<field name="qty_available"/>
 						<field name="virtual_available"/>
 						<field name="lst_price"/>
 						<field name="price" invisible="not context.get('pricelist',False)"/>
 						<field name="standard_price" groups="base.group_extended"/>
 						<field name="company_id" groups="base.group_multi_company" invisible="1"/>
-						<field name="modele"  groups="product_nurwagen.group_vente_voitures"/>
 					</tree>
 				</tree>
 			</field>
 		</record>
-		<menuitem name="Voitures" icon="terp-project" id="voiture_menu"/>
-		<menuitem name="Voitures" parent="voiture_menu" id="voiture_menu_mainform" />
-		<menuitem name="Voitures" id="menu_procurement_t" action="product.product_normal_action" parent="voiture_menu_mainform"/>
+		<menuitem name="Voitures" icon="terp-project" id="voiture_menu" groups="mrp_repair.group_vente_voitures"/>
+		<menuitem name="Voitures" parent="voiture_menu" id="voiture_menu_mainform" groups="mrp_repair.group_vente_voitures"/>
+		<menuitem name="Voitures" id="menu_procurement_t" action="product.product_normal_action" parent="voiture_menu_mainform" groups="mrp_repair.group_vente_voitures"/>
 	</data>
 </openerp>
 

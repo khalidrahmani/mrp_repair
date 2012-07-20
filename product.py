@@ -25,14 +25,11 @@ class product_product(osv.osv):
             
     _columns = {
         'default_code': fields.char('Reference',size=24, required=True),                
-        'code_marque': fields.many2one('code.marque','Code Marque'),
-        'marque': fields.many2one('car.marque','Marque'),
-        'modele': fields.many2one('car.modele','Modele',domain="[('marque_id','=',marque)]"),
-        'matricule' : fields.char('Matricule', size=64),
+        'code_marque': fields.many2one('code.marque','Code Marque'),        
         'casier' : fields.char('Casier', size=64),
-        'casier2' : fields.char('Casier2', size=64),        
-        'kilometrage' : fields.char('Kilometrage', size=64),
-        'similar_products' : fields.one2many('similar.product.line', 'product_id_ref', 'Similar Products'),                
+        'casier2' : fields.char('Casier2', size=64),               
+        'similar_products' : fields.one2many('similar.product.line', 'product_id_ref', 'Similar Products'),  
+        'caracteristiques_ids': fields.one2many('car.caracteristiques', 'product_id_ref', 'Caracteristiques'),              
     }
     
     def search(self, cr, uid, args, offset=0, limit=None, order=None, context=None, count=False):
@@ -70,6 +67,15 @@ class product_product(osv.osv):
         default['default_code'] = product['default_code'] + ' (copy)'
 
         return super(product_product, self).copy(cr=cr, uid=uid, id=id, default=default, context=context) 
+
+    _defaults = {
+        'property_account_income' : 726, #Fournisseur , Table account_account_template  
+        'property_account_expense' : 469,
+        'property_stock_account_input': 236,
+        'property_stock_account_output': 236,
+        'valuation': 'real_time'
+    }
+
                           
 product_product()
 
@@ -84,3 +90,16 @@ class similar_product_line(osv.osv):
     }
                         
 similar_product_line()    
+
+class car_caracteristiques(osv.osv):
+    _name = 'car.caracteristiques'        
+    _description = 'similar product line'    
+    
+    _columns = {
+        'product_id_ref': fields.many2one('product.product', 'Product Ref',ondelete='cascade', select=True),                
+        'name' : fields.char('Nom', size=64),
+        'value' : fields.char('Valeur', size=64),
+        'visible' : fields.boolean('Visible'),       
+    }
+                        
+car_caracteristiques()    

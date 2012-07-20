@@ -69,6 +69,7 @@ class mrp_repair(osv.osv):
                                         <field name="product_uom_qty" string="Qty"  attrs="{'readonly':[('cr_uid','!=',%s)]}"/>
                                         <field name="product_uom" string="UoM" attrs="{'readonly':[('cr_uid','!=',%s)]}"/>
                                         <field name="price_unit" attrs="{'readonly':[('cr_uid','!=',%s)]}"/>
+                                        <field name="discount" attrs="{'readonly':[('cr_uid','!=',%s)]}"/>
                                         <field name="price_subtotal"/>
                                         <newline/>
                                         <group colspan="2">
@@ -94,10 +95,11 @@ class mrp_repair(osv.osv):
                                 <field name="product_uom" string="UoM"/>
                                 <field name="price_unit"/>
                                 <field name="tax_id" invisible="1"/>
+                                <field name="discount"/>
                                 <field name="price_subtotal"/>
                             </tree>
                         </field>
-            """ % ((uid), (uid), (uid) ,(uid), (uid), (uid))
+            """ % ((uid), (uid), (uid) ,(uid), (uid), (uid), (uid))
             u = etree.fromstring(unicode(u, 'utf8')) 
             for node in nodes:
                 node.getparent().replace(node, u)
@@ -135,12 +137,12 @@ class mrp_repair(osv.osv):
             for line in repair.operations:
                 #manage prices with tax included use compute_all instead of compute
                 if line.to_invoice:
-                    tax_calculate = tax_obj.compute_all(cr, uid, line.tax_id, line.price_unit, line.product_uom_qty, repair.partner_invoice_id.id, line.product_id, repair.partner_id)
+                    tax_calculate = tax_obj.compute_all(cr, uid, line.tax_id, line.price_unit*(1-(line.discount/100)), line.product_uom_qty, repair.partner_invoice_id.id, line.product_id, repair.partner_id)
                     for c in tax_calculate['taxes']:
                         val += c['amount']
             for line in repair.fees_lines:
                 if line.to_invoice:
-                    tax_calculate = tax_obj.compute_all(cr, uid, line.tax_id, line.price_unit, line.product_uom_qty, repair.partner_invoice_id.id, line.product_id, repair.partner_id)
+                    tax_calculate = tax_obj.compute_all(cr, uid, line.tax_id, line.price_unit*(1-(line.discount/100)), line.product_uom_qty, repair.partner_invoice_id.id, line.product_id, repair.partner_id)
                     for c in tax_calculate['taxes']:
                         val += c['amount']
             res[repair.id] = cur_obj.round(cr, uid, cur, val)
@@ -202,7 +204,8 @@ class mrp_repair(osv.osv):
             ('2binvoiced','To be Invoiced'),
             ('invoice_except','Invoice Exception'),
             ('done','Done'),
-            ('cancel','Cancel')
+            ('cancel','Cancel'),
+            ('avoir','Avoir')
             ], 'State', readonly=True,
             help=' * The \'Draft\' state is used when a user is encoding a new and unconfirmed repair order. \
             \n* The \'Confirmed\' state is used when a user confirms the repair order. \
@@ -341,28 +344,30 @@ class mrp_repair(osv.osv):
         """ Cancels repair order.
         @return: True
         """
-        mrp_line_obj = self.pool.get('mrp.repair.line')
-        for repair in self.browse(cr, uid, ids, context=context):
-            mrp_line_obj.write(cr, uid, [l.id for l in repair.operations], {'state': 'cancel'}, context=context)
-        self.write(cr,uid,ids,{'state':'cancel'})        
+                        
 #        if self.is_magasinier(cr, uid, ids, context):
         move_obj = self.pool.get('stock.move')
         repair_line_obj = self.pool.get('mrp.repair.line')
         for repair in self.browse(cr, uid, ids, context=context):
-            for move in repair.operations:
-                if move.product_id.type  in ('product', 'consu'):
-                    move_id = move_obj.create(cr, uid, {
-                        'name': move.name,
-                        'product_id': move.product_id.id,
-                        'product_qty': move.product_uom_qty,
-                        'product_uom': move.product_uom.id,
-                        'address_id': repair.address_id and repair.address_id.id or False,
-                        'location_id': move.location_dest_id.id,
-                        'location_dest_id': move.location_id.id,
-                        'tracking_id': False,
-                        'state': 'done',
-                    })
-                    repair_line_obj.write(cr, uid, [move.id], {'move_id': move_id, 'state': 'done'}, context=context)        
+            if repair.state == "under_repair":
+                for move in repair.operations:
+                    if move.product_id.type  in ('product', 'consu'):
+                        move_id = move_obj.create(cr, uid, {
+                            'name': move.name,
+                            'product_id': move.product_id.id,
+                            'product_qty': move.product_uom_qty,
+                            'product_uom': move.product_uom.id,
+                            'address_id': repair.address_id and repair.address_id.id or False,
+                            'location_id': move.location_dest_id.id,
+                            'location_dest_id': move.location_id.id,
+                            'tracking_id': False,
+                            'state': 'done',
+                        })
+                        repair_line_obj.write(cr, uid, [move.id], {'move_id': move_id, 'state': 'done'}, context=context)   
+        mrp_line_obj = self.pool.get('mrp.repair.line')
+        for repair in self.browse(cr, uid, ids, context=context):
+            mrp_line_obj.write(cr, uid, [l.id for l in repair.operations], {'state': 'cancel'}, context=context)
+        self.write(cr,uid,ids,{'state':'cancel'})        
         return True
     
     def is_magasinier(self, cr, uid, ids, context=None):
@@ -377,55 +382,52 @@ class mrp_repair(osv.osv):
     
     def wkf_invoice_create(self, cr, uid, ids, *args):
         return self.action_invoice_create(cr, uid, ids)
-
+    
+    def _sale_order_margin(self, cr, uid, ids, context=None):
+        margin = 0
+        for repair in self.browse(cr, uid, ids, context=context):
+            for line in repair.operations:                
+                if line.product_id:
+                    if line.product_id.standard_price:
+                        margin = margin + round((line.price_unit*line.product_uom_qty*(100.0-line.discount)/100.0) -(line.product_id.standard_price*line.product_uom_qty), 2)
+                    else:
+                        margin = margin + round((line.price_unit*line.product_uom_qty*(100.0-line.discount)/100.0) -(line.product_id.standard_price*line.product_uom_qty), 2)
+     
+        return margin
+    
     def action_invoice_create(self, cr, uid, ids, group=False, context=None):
         """ Creates invoice(s) for repair order.
         @param group: It is set to true when group invoice is to be generated.
         @return: Invoice Ids.
         """
-        res = {}
-        invoices_group = {}
-        inv_line_obj = self.pool.get('account.invoice.line')
-        inv_obj = self.pool.get('account.invoice')
+        margin = self._sale_order_margin(cr, uid, ids)
+        move_obj = self.pool.get('stock.move')
+        sale_order_obj = self.pool.get('sale.order')
+        sale_order_line_obj = self.pool.get('sale.order.line')
         repair_line_obj = self.pool.get('mrp.repair.line')
-        repair_fee_obj = self.pool.get('mrp.repair.fee')
         for repair in self.browse(cr, uid, ids, context=context):
-            res[repair.id] = False
-            if repair.state in ('draft','cancel') or repair.invoice_id:
-                continue
-            if not (repair.partner_id.id and repair.partner_invoice_id.id):
-                raise osv.except_osv(_('No partner !'),_('You have to select a Partner Invoice Address in the repair form !'))
-            comment = repair.quotation_notes
-            if (repair.invoice_method != 'none'):
-                if group and repair.partner_invoice_id.id in invoices_group:
-                    inv_id = invoices_group[repair.partner_invoice_id.id]
-                    invoice = inv_obj.browse(cr, uid, inv_id)
-                    invoice_vals = {
-                        'name': invoice.name +', '+repair.name,
-                        'origin': invoice.origin+', '+repair.name,
-                        'comment':(comment and (invoice.comment and invoice.comment+"\n"+comment or comment)) or (invoice.comment and invoice.comment or ''),
+            account_id = repair.partner_id.property_account_receivable.id
+            sale_order = {
+                          'state': 'draft',
+                          'shipped': False,
+                          'invoice_ids': [],
+                          'picking_ids': [],
+                          'date_confirm': False,
+                          'name': repair.name,
+                          'origin':repair.name,
+                          'account_id': account_id,
+                          'partner_id': repair.partner_id.id,
+                          'partner_invoice_id': repair.partner_invoice_id.id,
+                          'partner_order_id': repair.partner_invoice_id.id, 
+                          'partner_shipping_id': repair.partner_invoice_id.id,                                                   
+                          'fiscal_position': repair.partner_id.property_account_position.id,
+                          'pricelist_id': repair.pricelist_id.currency_id.id,
+                          'margin': margin
                     }
-                    inv_obj.write(cr, uid, [inv_id], invoice_vals, context=context)
-                else:
-                    if not repair.partner_id.property_account_receivable:
-                        raise osv.except_osv(_('Error !'), _('No account defined for partner "%s".') % repair.partner_id.name )
-                    account_id = repair.partner_id.property_account_receivable.id
-                    inv = {
-                        'name': repair.name,
-                        'origin':repair.name,
-                        'type': 'out_invoice',
-                        'account_id': account_id,
-                        'partner_id': repair.partner_id.id,
-                        'address_invoice_id': repair.partner_invoice_id.id,
-                        'currency_id': repair.pricelist_id.currency_id.id,
-                        'comment': repair.quotation_notes,
-                        'fiscal_position': repair.partner_id.property_account_position.id
-                    }
-                    inv_id = inv_obj.create(cr, uid, inv)
-                    invoices_group[repair.partner_invoice_id.id] = inv_id
-                self.write(cr, uid, repair.id, {'invoiced': True, 'invoice_id': inv_id})
-
-                for operation in repair.operations:
+            sale_order_id = sale_order_obj.create(cr, uid, sale_order)
+            self.write(cr, uid, repair.id, {'invoiced': True})
+            
+            for operation in repair.operations:
                     if operation.to_invoice == True:
                         if group:
                             name = repair.name + '-' + operation.name
@@ -439,51 +441,33 @@ class mrp_repair(osv.osv):
                         else:
                             raise osv.except_osv(_('Error !'), _('No account defined for product "%s".') % operation.product_id.name )
 
-                        invoice_line_id = inv_line_obj.create(cr, uid, {
-                            'invoice_id': inv_id,
-                            'name': name,
-                            'origin': repair.name,
-                            'account_id': account_id,
-                            'quantity': operation.product_uom_qty,
-                            'invoice_line_tax_id': [(6,0,[x.id for x in operation.tax_id])],
-                            'uos_id': operation.product_uom.id,
+                        sale_order_line_id = sale_order_line_obj.create(cr, uid, {                                                                               
+                            'tax_id': [(6,0,[x.id for x in operation.tax_id])],
+                            'name': name,                                                                               
+                            'order_id': sale_order_id,
+                            'product_uos_qty': operation.product_uom.id,
+                            'product_uom_qty': operation.product_uom_qty,
                             'price_unit': operation.price_unit,
-                            'price_subtotal': operation.product_uom_qty*operation.price_unit,
-                            'product_id': operation.product_id and operation.product_id.id or False
+                            'purchase_price': operation.product_id.standard_price,
+                            'discount': operation.discount or 0,
+                            'product_id': operation.product_id and operation.product_id.id or False, 
                         })
-                        repair_line_obj.write(cr, uid, [operation.id], {'invoiced': True, 'invoice_line_id': invoice_line_id})
-                for fee in repair.fees_lines:
-                    if fee.to_invoice == True:
-                        if group:
-                            name = repair.name + '-' + fee.name
-                        else:
-                            name = fee.name
-                        if not fee.product_id:
-                            raise osv.except_osv(_('Warning !'), _('No product defined on Fees!'))
+                        repair_line_obj.write(cr, uid, [operation.id], {'invoiced': True})
+                        
+                        if operation.product_id.type  in ('product', 'consu'):
+                            move_id = move_obj.create(cr, uid, {
+                                'name': operation.name,
+                                'product_id': operation.product_id.id,
+                                'product_qty': operation.product_uom_qty,
+                                'product_uom': operation.product_uom.id,
+                                'address_id': repair.address_id and repair.address_id.id or False,
+                                'location_id': operation.location_dest_id.id,
+                                'location_dest_id': operation.location_id.id,
+                                'tracking_id': False,
+                                'state': 'done',
+                            })     
 
-                        if fee.product_id.property_account_income:
-                            account_id = fee.product_id.property_account_income.id
-                        elif fee.product_id.categ_id.property_account_income_categ:
-                            account_id = fee.product_id.categ_id.property_account_income_categ.id
-                        else:
-                            raise osv.except_osv(_('Error !'), _('No account defined for product "%s".') % fee.product_id.name)
-
-                        invoice_fee_id = inv_line_obj.create(cr, uid, {
-                            'invoice_id': inv_id,
-                            'name': name,
-                            'origin': repair.name,
-                            'account_id': account_id,
-                            'quantity': fee.product_uom_qty,
-                            'invoice_line_tax_id': [(6,0,[x.id for x in fee.tax_id])],
-                            'uos_id': fee.product_uom.id,
-                            'product_id': fee.product_id and fee.product_id.id or False,
-                            'price_unit': fee.price_unit,
-                            'price_subtotal': fee.product_uom_qty*fee.price_unit
-                        })
-                        repair_fee_obj.write(cr, uid, [fee.id], {'invoiced': True, 'invoice_line_id': invoice_fee_id})
-                res[repair.id] = inv_id
-        return res
-
+    
     def action_repair_ready(self, cr, uid, ids, context=None):
         """ Writes repair order state to 'Ready'
         @return: True
@@ -498,30 +482,33 @@ class mrp_repair(osv.osv):
         """ Writes repair order state to 'Under Repair'
         @return: True
         """
+#        if self.is_magasinier(cr, uid, ids, context):    
+        move_obj = self.pool.get('stock.move')
+        repair_line_obj = self.pool.get('mrp.repair.line')
+        for repair in self.browse(cr, uid, ids, context=context):
+            if repair.state == "confirmed":
+                for move in repair.operations:
+                    if move.product_id.type  in ('product', 'consu'):                       
+                        move_id = move_obj.create(cr, uid, {
+                            'name': move.name,
+                            'product_id': move.product_id.id,
+                            'product_qty': move.product_uom_qty,
+                            'product_uom': move.product_uom.id,
+                            'address_id': repair.address_id and repair.address_id.id or False,
+                            'location_id': move.location_id.id,
+                            'location_dest_id': move.location_dest_id.id,
+                            'tracking_id': False,
+                            'state': 'done',
+                        })
+                        repair_line_obj.write(cr, uid, [move.id], {'move_id': move_id, 'state': 'done'}, context=context)    
+                                
         repair_line = self.pool.get('mrp.repair.line')
         for repair in self.browse(cr, uid, ids, context=context):
             repair_line.write(cr, uid, [l.id for
                     l in repair.operations], {'state': 'confirmed'}, context=context)
             repair.write({'state': 'under_repair'})
-#        if self.is_magasinier(cr, uid, ids, context):    
-        move_obj = self.pool.get('stock.move')
-        repair_line_obj = self.pool.get('mrp.repair.line')
-        for repair in self.browse(cr, uid, ids, context=context):
-            for move in repair.operations:
-                if move.product_id.type  in ('product', 'consu'):
-                    move_id = move_obj.create(cr, uid, {
-                        'name': move.name,
-                        'product_id': move.product_id.id,
-                        'product_qty': move.product_uom_qty,
-                        'product_uom': move.product_uom.id,
-                        'address_id': repair.address_id and repair.address_id.id or False,
-                        'location_id': move.location_id.id,
-                        'location_dest_id': move.location_dest_id.id,
-                        'tracking_id': False,
-                        'state': 'done',
-                    })
-                    repair_line_obj.write(cr, uid, [move.id], {'move_id': move_id, 'state': 'done'}, context=context)              
-        return True
+          
+        return True    
 
     def action_repair_end(self, cr, uid, ids, context=None):
         """ Writes repair order state to 'To be invoiced' if invoice method is
@@ -612,7 +599,7 @@ class ProductChangeMixin(object):
 class mrp_repair_line(osv.osv, ProductChangeMixin):
     _name = 'mrp.repair.line'
     _description = 'Repair Line'
-    _order = "product_id"
+    _order = "product_uom desc"
     
     def copy_data(self, cr, uid, id, default=None, context=None):
         if not default: default = {}
@@ -628,12 +615,13 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
         res = {}
         cur_obj=self.pool.get('res.currency')
         for line in self.browse(cr, uid, ids, context=context):
-            res[line.id] = line.to_invoice and line.price_unit * line.product_uom_qty or 0
+            res[line.id] = line.to_invoice and line.price_unit * line.product_uom_qty * (1 - (line.discount or 0.0) /100.0) or 0
             cur = line.repair_id.pricelist_id.currency_id
             res[line.id] = cur_obj.round(cr, uid, cur, res[line.id])
         return res
        
     _columns = {
+        'discount': fields.float('Discount (%)', digits=(16,2)),
         'cr_uid' : fields.integer('Cr Uid',required=True),        
         'name' : fields.char('Description',size=64,required=True),
         'casier' : fields.char('Casier',size=64),
@@ -717,7 +705,7 @@ class mrp_repair_fee(osv.osv, ProductChangeMixin):
         res = {}
         cur_obj = self.pool.get('res.currency')
         for line in self.browse(cr, uid, ids, context=context):
-            res[line.id] = line.to_invoice and line.price_unit * line.product_uom_qty or 0
+            res[line.id] = line.to_invoice and line.price_unit * line.product_uom_qty * (1 - (line.discount or 0.0) /100.0) or 0            
             cur = line.repair_id.pricelist_id.currency_id
             res[line.id] = cur_obj.round(cr, uid, cur, res[line.id])
         return res
@@ -726,6 +714,7 @@ class mrp_repair_fee(osv.osv, ProductChangeMixin):
         'repair_id': fields.many2one('mrp.repair', 'Repair Order Reference', required=True, ondelete='cascade', select=True),
         'name': fields.char('Description', size=64, select=True,required=True),
         'product_id': fields.many2one('product.product', 'Product'),
+        'discount': fields.float('Discount (%)', digits=(16,2)),
         'product_uom_qty': fields.float('Quantity', digits=(16,2), required=True),
         'price_unit': fields.float('Unit Price', required=True),
         'product_uom': fields.many2one('product.uom', 'Product UoM', required=True),

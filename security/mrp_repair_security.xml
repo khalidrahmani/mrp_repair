@@ -10,7 +10,9 @@
     <record id="group_magasinier" model="res.groups">
         <field name="name">Magasinier</field>
     </record>
-
+	<record id="group_vente_voitures" model="res.groups">
+        <field name="name">Vente Voitures</field>
+    </record>
 <!-- Multi -->
     <record model="ir.rule" id="mrp_repair_rule">
         <field name="name">mrp_repair multi-company</field>

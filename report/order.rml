@@ -56,6 +56,7 @@
       <lineStyle kind="LINEBELOW" colorName="#000000" start="2,-1" stop="2,-1"/>
       <lineStyle kind="LINEBELOW" colorName="#000000" start="3,-1" stop="3,-1"/>
       <lineStyle kind="LINEBELOW" colorName="#000000" start="4,-1" stop="4,-1"/>
+      <lineStyle kind="LINEBELOW" colorName="#000000" start="5,-1" stop="5,-1"/>
     </blockTableStyle>
     <blockTableStyle id="Table5">
       <blockAlignment value="LEFT"/>
@@ -257,7 +258,7 @@
     <para style="P12">
       <font color="white"> </font>
     </para>
-    <blockTable colWidths="214.0,90.0,90.0,60.0,80.0" repeatRows="1" style="Table4">
+    <blockTable colWidths="154.0,90.0,90.0,60.0,60.0,80.0" repeatRows="1" style="Table4">
     [[ (o.is_devis!=True and o.state=="draft") and removeParentNode('blockTable') ]]
       <tr>
         <td>
@@ -273,6 +274,9 @@
           <para style="terp_tblheader_Details_Right">PU </para>
         </td>
         <td>
+          <para style="terp_tblheader_Details_Right">Remise </para>
+        </td>
+        <td>
           <para style="terp_tblheader_Details_Right">Price</para>
         </td>
       </tr>
@@ -281,7 +285,7 @@
     
       <para style="P30"><font color="white">[[ repeatIn(o.operations,'line') ]] </font></para>
       <para style="P29">[[ (not line or (o.is_devis!=True and o.state=="draft") ) and removeParentNode('section') ]]</para>
-      <blockTable colWidths="214.0,90.0,90.0,60.0,80.0" style="Table5">[[ (line.to_invoice==True) or removeParentNode('blockTable') ]]
+      <blockTable colWidths="154.0,90.0,90.0,60.0,60.0,80.0" style="Table5">[[ (line.to_invoice==True) or removeParentNode('blockTable') ]]
         <tr>
           <td>
             <para style="terp_default_9"><font> [[ line.name ]]</font></para>          	
@@ -294,6 +298,9 @@
           </td>
           <td>
             <para style="terp_default_Right_9">[[ formatLang(line.price_unit) ]] </para>
+          </td>
+          <td>
+            <para style="terp_default_Right_9">[[ formatLang(line.discount) ]] </para>
           </td>
           <td>
             <para style="terp_default_Right_9">[[ formatLang(line.price_subtotal) ]] [[ o.pricelist_id.currency_id. symbol ]]</para>
