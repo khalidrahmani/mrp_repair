@@ -6,6 +6,7 @@ from dateutil.relativedelta import relativedelta
 from tools.translate import _
 import decimal_precision as dp
 from lxml import etree
+import random
 
 class car_marque(osv.osv):
     
@@ -49,7 +50,8 @@ car_symptomes()
 class mrp_repair(osv.osv):
     _name = 'mrp.repair'
     _description = 'Repair Order'
-
+    _order = "name DESC"
+    
     def fields_view_get(self, cr, uid, view_id=None, view_type='form', context=None, toolbar=False, submenu=False):
         if context is None: context = {}       
         res = super(mrp_repair, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=False)
@@ -181,7 +183,7 @@ class mrp_repair(osv.osv):
         return result.keys()   
     
     _columns = {
-        'name': fields.char('Repair Reference',size=24, required=True),
+        'name': fields.char('Repair Reference', size=64, required=True, readonly=True, states={'draft': [('readonly', False)]}, select=True),
         'partner_id' : fields.many2one('res.partner', 'Partner', select=True, help='This field allow you to choose the parner that will be invoiced and delivered'),
         'vehicule': fields.many2one('mrp.car','Vehicule', domain="[('partner_id','=',partner_id)]"),
         'marque': fields.char('Marque',size=24),
@@ -245,7 +247,11 @@ class mrp_repair(osv.osv):
                 'mrp.repair.line': (_get_lines, ['price_unit', 'price_subtotal', 'product_id', 'tax_id', 'product_uom_qty', 'product_uom'], 10),
             }),
     }
-
+    
+    _sql_constraints = [
+        ('uniq_name', 'unique(name)', "Order Reference must be unique"),
+    ]
+    
     _defaults = {
         'create_date2': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'state': 'draft',
@@ -254,8 +260,7 @@ class mrp_repair(osv.osv):
         'company_id': lambda self, cr, uid, context: self.pool.get('res.company')._company_default_get(cr, uid, 'mrp.repair', context=context),
         'pricelist_id': lambda self, cr, uid,context : self.pool.get('product.pricelist').search(cr, uid, [('type','=','sale')])[0]
     }
-
-    
+        
     def copy(self, cr, uid, ids, default=None, context=None):
         if not default:
             default = {}
@@ -405,6 +410,7 @@ class mrp_repair(osv.osv):
         sale_order_obj = self.pool.get('sale.order')
         sale_order_line_obj = self.pool.get('sale.order.line')
         repair_line_obj = self.pool.get('mrp.repair.line')
+
         for repair in self.browse(cr, uid, ids, context=context):
             account_id = repair.partner_id.property_account_receivable.id
             sale_order = {
@@ -413,7 +419,7 @@ class mrp_repair(osv.osv):
                           'invoice_ids': [],
                           'picking_ids': [],
                           'date_confirm': False,
-                          'name': repair.name,
+                          'name': repair.name + "-" + str(random.randrange(0, 9)),
                           'origin':repair.name,
                           'account_id': account_id,
                           'partner_id': repair.partner_id.id,
@@ -422,11 +428,12 @@ class mrp_repair(osv.osv):
                           'partner_shipping_id': repair.partner_invoice_id.id,                                                   
                           'fiscal_position': repair.partner_id.property_account_position.id,
                           'pricelist_id': repair.pricelist_id.currency_id.id,
-                          'margin': margin
+                          'margin': margin,
+                          'company_id': repair.company_id.id
                     }
             sale_order_id = sale_order_obj.create(cr, uid, sale_order)
             self.write(cr, uid, repair.id, {'invoiced': True})
-            
+            self.write(cr, uid, repair.id, {'state': 'done'})
             for operation in repair.operations:
                     if operation.to_invoice == True:
                         if group:
@@ -439,8 +446,8 @@ class mrp_repair(osv.osv):
                         elif operation.product_id.categ_id.property_account_income_categ:
                             account_id = operation.product_id.categ_id.property_account_income_categ.id
                         else:
-                            raise osv.except_osv(_('Error !'), _('No account defined for product "%s".') % operation.product_id.name )
-
+                            raise osv.except_osv(_('Error !'), _('No account defined for product "%s".') % operation.product_id.name )                   
+                        
                         sale_order_line_id = sale_order_line_obj.create(cr, uid, {                                                                               
                             'tax_id': [(6,0,[x.id for x in operation.tax_id])],
                             'name': name,                                                                               
@@ -450,7 +457,7 @@ class mrp_repair(osv.osv):
                             'price_unit': operation.price_unit,
                             'purchase_price': operation.product_id.standard_price,
                             'discount': operation.discount or 0,
-                            'product_id': operation.product_id and operation.product_id.id or False, 
+                            'product_id': operation.product_id and operation.product_id.id or False,
                         })
                         repair_line_obj.write(cr, uid, [operation.id], {'invoiced': True})
                         
@@ -526,20 +533,6 @@ class mrp_repair(osv.osv):
                 pass
             self.write(cr, uid, [order.id], val)
         return True
-
-    def wkf_repair_done(self, cr, uid, ids, *args):
-        self.action_repair_done(cr, uid, ids)
-        return True
-
-    def action_repair_done(self, cr, uid, ids, context=None):
-        """ Creates stock move and picking for repair order.
-        @return: Picking ids.
-        """
-        res = {}
-        for repair in self.browse(cr, uid, ids, context=context):         
-            self.write(cr, uid, [repair.id], {'state': 'done'})
-        return res
-
 
 mrp_repair()
 
@@ -682,7 +675,7 @@ class mrp_repair_line(osv.osv, ProductChangeMixin):
         return True
     
     _constraints = [
-        (_quantity_exists_in_warehouse,'Error: The quantity does not exist in warehouse.', ['product_uom_qty']),
+#        (_quantity_exists_in_warehouse,'Error: The quantity does not exist in warehouse.', ['product_uom_qty']),
     ]
     
 mrp_repair_line()

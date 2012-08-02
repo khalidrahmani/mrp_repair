@@ -9,6 +9,67 @@ from tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT, fl
 import decimal_precision as dp
 import netsvc
 
+class sale_order(osv.osv):
+
+
+    _name = 'sale.order'
+    _description = 'Sales Order'
+    _inherit = 'sale.order' 
+
+
+    def _create_pickings_and_procurements(self, cr, uid, order, order_lines, picking_id=False, context=None):
+        
+        move_obj = self.pool.get('stock.move')
+        picking_obj = self.pool.get('stock.picking')
+        procurement_obj = self.pool.get('procurement.order')
+        proc_ids = []
+
+        for line in order_lines:
+            if line.state == 'done':
+                continue
+            if not (line.product_id.product_tmpl_id.type in ('product', 'consu')):
+                continue
+            date_planned = self._get_date_planned(cr, uid, order, line, order.date_order, context=context)
+
+            if line.product_id:
+                if line.product_id.product_tmpl_id.type in ('product', 'consu'):
+                    if not picking_id:
+                        picking_id = picking_obj.create(cr, uid, super(sale_order, self)._prepare_order_picking(cr, uid, order, context=context))
+                    move_id = move_obj.create(cr, uid, super(sale_order, self)._prepare_order_line_move(cr, uid, order, line, picking_id, date_planned, context=context))
+                else:
+                    # a service has no stock move
+                    move_id = False
+
+                proc_id = procurement_obj.create(cr, uid, super(sale_order, self)._prepare_order_line_procurement(cr, uid, order, line, move_id, date_planned, context=context))
+                proc_ids.append(proc_id)
+                line.write({'procurement_id': proc_id})
+                self.ship_recreate(cr, uid, order, line, move_id, proc_id)
+
+        wf_service = netsvc.LocalService("workflow")
+        if picking_id:
+            wf_service.trg_validate(uid, 'stock.picking', picking_id, 'button_confirm', cr)
+
+        for proc_id in proc_ids:
+            wf_service.trg_validate(uid, 'procurement.order', proc_id, 'button_confirm', cr)
+
+        val = {}
+        if order.state == 'shipping_except':
+            val['state'] = 'progress'
+            val['shipped'] = False
+
+            if (order.order_policy == 'manual'):
+                for line in order.order_line:
+                    if (not line.invoiced) and (line.state not in ('cancel', 'draft')):
+                        val['state'] = 'manual'
+                        break
+        order.write(val)
+        return True
+
+
+
+
+sale_order()
+
 class sale_order_line(osv.osv):
 
 

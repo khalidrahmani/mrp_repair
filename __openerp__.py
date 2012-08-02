@@ -39,8 +39,8 @@ The aim is to have a complete module to manage all products repairs. The followi
     'images': ['images/repair_order.jpeg'],
     'depends': ['sale', 'purchase', 'account', 'sale_margin', 'product_margin', 'sale_journal', 'account_accountant', 'account_voucher', 'account_accountant', 'account_payment', 'hr', 'hr_payroll', 'auto_backup', 'account_invoice_layout', 'purchase_discount'],
     'update_xml': [
-        'security/ir.model.access.csv',
         'security/mrp_repair_security.xml',
+        'security/ir.model.access.csv',        
         'mrp_repair_sequence.xml',
         'wizard/mrp_repair_cancel_view.xml',
         'wizard/mrp_repair_make_invoice_view.xml',
