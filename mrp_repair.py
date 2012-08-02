@@ -412,6 +412,22 @@ class mrp_repair(osv.osv):
         repair_line_obj = self.pool.get('mrp.repair.line')
 
         for repair in self.browse(cr, uid, ids, context=context):
+            
+            self.write(cr, uid, repair.id, {'invoiced': True, 'state': 'done'})            
+            for operation in repair.operations:
+                if operation.product_id.type  in ('product', 'consu'):
+                    move_id = move_obj.create(cr, uid, {
+                        'name': operation.name,
+                        'product_id': operation.product_id.id,
+                        'product_qty': operation.product_uom_qty,
+                        'product_uom': operation.product_uom.id,
+                        'address_id': repair.address_id and repair.address_id.id or False,
+                        'location_id': operation.location_dest_id.id,
+                        'location_dest_id': operation.location_id.id,
+                        'tracking_id': False,
+                        'state': 'done',
+                    })               
+            
             account_id = repair.partner_id.property_account_receivable.id
             sale_order = {
                           'state': 'draft',
@@ -432,48 +448,32 @@ class mrp_repair(osv.osv):
                           'company_id': repair.company_id.id
                     }
             sale_order_id = sale_order_obj.create(cr, uid, sale_order)
-            self.write(cr, uid, repair.id, {'invoiced': True})
-            self.write(cr, uid, repair.id, {'state': 'done'})
+
             for operation in repair.operations:
-                    if operation.to_invoice == True:
-                        if group:
-                            name = repair.name + '-' + operation.name
-                        else:
-                            name = operation.name
+                if group:
+                    name = repair.name + '-' + operation.name
+                else:
+                    name = operation.name
 
-                        if operation.product_id.property_account_income:
-                            account_id = operation.product_id.property_account_income.id
-                        elif operation.product_id.categ_id.property_account_income_categ:
-                            account_id = operation.product_id.categ_id.property_account_income_categ.id
-                        else:
-                            raise osv.except_osv(_('Error !'), _('No account defined for product "%s".') % operation.product_id.name )                   
-                        
-                        sale_order_line_id = sale_order_line_obj.create(cr, uid, {                                                                               
-                            'tax_id': [(6,0,[x.id for x in operation.tax_id])],
-                            'name': name,                                                                               
-                            'order_id': sale_order_id,
-                            'product_uos_qty': operation.product_uom.id,
-                            'product_uom_qty': operation.product_uom_qty,
-                            'price_unit': operation.price_unit,
-                            'purchase_price': operation.product_id.standard_price,
-                            'discount': operation.discount or 0,
-                            'product_id': operation.product_id and operation.product_id.id or False,
-                        })
-                        repair_line_obj.write(cr, uid, [operation.id], {'invoiced': True})
-                        
-                        if operation.product_id.type  in ('product', 'consu'):
-                            move_id = move_obj.create(cr, uid, {
-                                'name': operation.name,
-                                'product_id': operation.product_id.id,
-                                'product_qty': operation.product_uom_qty,
-                                'product_uom': operation.product_uom.id,
-                                'address_id': repair.address_id and repair.address_id.id or False,
-                                'location_id': operation.location_dest_id.id,
-                                'location_dest_id': operation.location_id.id,
-                                'tracking_id': False,
-                                'state': 'done',
-                            })     
-
+                if operation.product_id.property_account_income:
+                    account_id = operation.product_id.property_account_income.id
+                elif operation.product_id.categ_id.property_account_income_categ:
+                    account_id = operation.product_id.categ_id.property_account_income_categ.id
+                else:
+                    raise osv.except_osv(_('Error !'), _('No account defined for product "%s".') % operation.product_id.name )                   
+                
+                sale_order_line_id = sale_order_line_obj.create(cr, uid, {                                                                               
+                    'tax_id': [(6,0,[x.id for x in operation.tax_id])],
+                    'name': name,                                                                               
+                    'order_id': sale_order_id,
+                    'product_uos_qty': operation.product_uom.id,
+                    'product_uom_qty': operation.product_uom_qty,
+                    'price_unit': operation.price_unit,
+                    'purchase_price': operation.product_id.standard_price,
+                    'discount': operation.discount or 0,
+                    'product_id': operation.product_id and operation.product_id.id or False,
+                })
+                repair_line_obj.write(cr, uid, [operation.id], {'invoiced': True})
     
     def action_repair_ready(self, cr, uid, ids, context=None):
         """ Writes repair order state to 'Ready'
