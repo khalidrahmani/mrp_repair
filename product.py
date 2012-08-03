@@ -29,7 +29,8 @@ class product_product(osv.osv):
         'casier' : fields.char('Casier', size=64),
         'casier2' : fields.char('Casier2', size=64),               
         'similar_products' : fields.one2many('similar.product.line', 'product_id_ref', 'Similar Products'),  
-        'caracteristiques_ids': fields.one2many('car.caracteristiques', 'product_id_ref', 'Caracteristiques'),              
+        'caracteristiques_ids': fields.one2many('car.caracteristiques', 'product_id_ref', 'Caracteristiques'),
+        'quantite_in_atelier' : fields.integer('Quantite en Atelier'),              
     }
     
     def search(self, cr, uid, args, offset=0, limit=None, order=None, context=None, count=False):

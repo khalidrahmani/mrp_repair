@@ -349,26 +349,12 @@ class mrp_repair(osv.osv):
         """ Cancels repair order.
         @return: True
         """
-                        
-#        if self.is_magasinier(cr, uid, ids, context):
-        move_obj = self.pool.get('stock.move')
-        repair_line_obj = self.pool.get('mrp.repair.line')
+                       
         for repair in self.browse(cr, uid, ids, context=context):
             if repair.state == "under_repair":
-                for move in repair.operations:
-                    if move.product_id.type  in ('product', 'consu'):
-                        move_id = move_obj.create(cr, uid, {
-                            'name': move.name,
-                            'product_id': move.product_id.id,
-                            'product_qty': move.product_uom_qty,
-                            'product_uom': move.product_uom.id,
-                            'address_id': repair.address_id and repair.address_id.id or False,
-                            'location_id': move.location_dest_id.id,
-                            'location_dest_id': move.location_id.id,
-                            'tracking_id': False,
-                            'state': 'done',
-                        })
-                        repair_line_obj.write(cr, uid, [move.id], {'move_id': move_id, 'state': 'done'}, context=context)   
+                for line in repair.operations:
+                    if line.product_id.type  in ('product', 'consu'):
+                            self.pool.get('product.product').write(cr, uid, [line.product_id.id], {'quantite_in_atelier': line.product_id.quantite_in_atelier-line.product_uom_qty})
         mrp_line_obj = self.pool.get('mrp.repair.line')
         for repair in self.browse(cr, uid, ids, context=context):
             mrp_line_obj.write(cr, uid, [l.id for l in repair.operations], {'state': 'cancel'}, context=context)
@@ -407,28 +393,13 @@ class mrp_repair(osv.osv):
         """
         res = {}
         margin = self._sale_order_margin(cr, uid, ids)
-        move_obj = self.pool.get('stock.move')
         sale_order_obj = self.pool.get('sale.order')
         sale_order_line_obj = self.pool.get('sale.order.line')
         repair_line_obj = self.pool.get('mrp.repair.line')
 
         for repair in self.browse(cr, uid, ids, context=context):
-            res[repair.id] = False
-              
-            if not repair.invoiced:           
-                for operation in repair.operations:
-                    if operation.product_id.type  in ('product', 'consu'):
-                        move_id = move_obj.create(cr, uid, {
-                            'name': operation.name,
-                            'product_id': operation.product_id.id,
-                            'product_qty': operation.product_uom_qty,
-                            'product_uom': operation.product_uom.id,
-                            'address_id': repair.address_id and repair.address_id.id or False,
-                            'location_id': operation.location_dest_id.id,
-                            'location_dest_id': operation.location_id.id,
-                            'tracking_id': False,
-                            'state': 'done',
-                        })               
+            res[str(repair.id)] = False
+                        
             self.write(cr, uid, repair.id, {'invoiced': True, 'state': 'done'})
             
             account_id = repair.partner_id.property_account_receivable.id
@@ -438,7 +409,7 @@ class mrp_repair(osv.osv):
                           'invoice_ids': [],
                           'picking_ids': [],
                           'date_confirm': False,
-                          'name': repair.name + "-" + str(random.randrange(0, 9)),
+                          'name': repair.name,
                           'origin':repair.name,
                           'account_id': account_id,
                           'partner_id': repair.partner_id.id,
@@ -477,7 +448,7 @@ class mrp_repair(osv.osv):
                     'product_id': operation.product_id and operation.product_id.id or False,
                 })
                 repair_line_obj.write(cr, uid, [operation.id], {'invoiced': True})
-            res[repair.id] = sale_order
+            res[str(repair.id)] = sale_order
         return res      
     
     def action_repair_ready(self, cr, uid, ids, context=None):
@@ -494,25 +465,11 @@ class mrp_repair(osv.osv):
         """ Writes repair order state to 'Under Repair'
         @return: True
         """
-#        if self.is_magasinier(cr, uid, ids, context):    
-        move_obj = self.pool.get('stock.move')
-        repair_line_obj = self.pool.get('mrp.repair.line')
         for repair in self.browse(cr, uid, ids, context=context):
             if repair.state == "confirmed":
-                for move in repair.operations:
-                    if move.product_id.type  in ('product', 'consu'):                       
-                        move_id = move_obj.create(cr, uid, {
-                            'name': move.name,
-                            'product_id': move.product_id.id,
-                            'product_qty': move.product_uom_qty,
-                            'product_uom': move.product_uom.id,
-                            'address_id': repair.address_id and repair.address_id.id or False,
-                            'location_id': move.location_id.id,
-                            'location_dest_id': move.location_dest_id.id,
-                            'tracking_id': False,
-                            'state': 'done',
-                        })
-                        repair_line_obj.write(cr, uid, [move.id], {'move_id': move_id, 'state': 'done'}, context=context)    
+                for line in repair.operations:
+                    if line.product_id.type  in ('product', 'consu'):
+                            self.pool.get('product.product').write(cr, uid, [line.product_id.id], {'quantite_in_atelier': line.product_id.quantite_in_atelier+line.product_uom_qty})
                                 
         repair_line = self.pool.get('mrp.repair.line')
         for repair in self.browse(cr, uid, ids, context=context):
@@ -528,6 +485,9 @@ class mrp_repair(osv.osv):
         @return: True
         """
         for order in self.browse(cr, uid, ids, context=context):
+            for line in order.operations:
+                if line.product_id.type  in ('product', 'consu'):
+                    self.pool.get('product.product').write(cr, uid, [line.product_id.id], {'quantite_in_atelier': line.product_id.quantite_in_atelier-line.product_uom_qty})
             val = {}
             val['repaired'] = True
             if (not order.invoiced and order.invoice_method=='after_repair'):
@@ -537,6 +497,7 @@ class mrp_repair(osv.osv):
             else:
                 pass
             self.write(cr, uid, [order.id], val)
+            
         return True
 
 mrp_repair()

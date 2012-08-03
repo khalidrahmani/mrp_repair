@@ -97,7 +97,7 @@
                         <separator string="" colspan="4"/>
                         <group col="13" colspan="4">
                             <field name="state"/>
-                            <button name="%(action_cancel_repair)d" states="confirmed,2binvoiced,under_repair" string="Modifier la Reparation" type="action" icon="gtk-stop"/>
+                            <button name="%(action_cancel_repair)d" states="confirmed,under_repair" string="Modifier la Reparation" type="action" icon="gtk-stop"/>
                             <button name="%(action_cancel_repair)d" states="invoice_except" string="Modifier la Reparation" type="action" icon="gtk-stop"/>
                             <button name="action_cancel_draft" states="cancel" string="Set to Draft" type="object" icon="gtk-convert"/>
                             <button name="repair_confirm" states="draft" string="Confirm Repair" icon="terp-camera_test"/>
