@@ -39,13 +39,13 @@ class make_invoice(osv.osv_memory):
         @param context: A standard dictionary
         @return: Loads the view of new invoice(s).
         """
-        if context is None:
-            context = {}
-        inv = self.browse(cr, uid, ids[0], context=context)
-        order_obj = self.pool.get('mrp.repair')
-        newinv = order_obj.action_invoice_create(cr, uid, context['active_ids'],
-                                                 group=inv.group,context=context)
-
+#        if context is None:
+#            context = {}
+#        inv = self.browse(cr, uid, ids[0], context=context)
+#        order_obj = self.pool.get('mrp.repair')
+#        newinv = order_obj.action_invoice_create(cr, uid, context['active_ids'],
+#                                                 group=inv.group,context=context)
+"""
         # We have to trigger the workflow of the given repairs, otherwise they remain 'to be invoiced'.
         # Note that the signal 'action_invoice_create' will trigger another call to the method 'action_invoice_create',
         # but that second call will not do anything, since the repairs are already invoiced.
@@ -63,6 +63,7 @@ class make_invoice(osv.osv_memory):
             'context': "{'type':'out_invoice'}",
             'type': 'ir.actions.act_window'
         }
+"""
 
 make_invoice()
 

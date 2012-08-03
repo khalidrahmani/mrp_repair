@@ -43,7 +43,6 @@ The aim is to have a complete module to manage all products repairs. The followi
         'security/ir.model.access.csv',        
         'mrp_repair_sequence.xml',
         'wizard/mrp_repair_cancel_view.xml',
-        'wizard/mrp_repair_make_invoice_view.xml',
         'mrp_repair_view.xml',
         'mrp_car_view.xml',
         'partner_view.xml',

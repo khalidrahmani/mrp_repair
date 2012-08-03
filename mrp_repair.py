@@ -405,6 +405,7 @@ class mrp_repair(osv.osv):
         @param group: It is set to true when group invoice is to be generated.
         @return: Invoice Ids.
         """
+        res = {}
         margin = self._sale_order_margin(cr, uid, ids)
         move_obj = self.pool.get('stock.move')
         sale_order_obj = self.pool.get('sale.order')
@@ -412,21 +413,23 @@ class mrp_repair(osv.osv):
         repair_line_obj = self.pool.get('mrp.repair.line')
 
         for repair in self.browse(cr, uid, ids, context=context):
-            
-            self.write(cr, uid, repair.id, {'invoiced': True, 'state': 'done'})            
-            for operation in repair.operations:
-                if operation.product_id.type  in ('product', 'consu'):
-                    move_id = move_obj.create(cr, uid, {
-                        'name': operation.name,
-                        'product_id': operation.product_id.id,
-                        'product_qty': operation.product_uom_qty,
-                        'product_uom': operation.product_uom.id,
-                        'address_id': repair.address_id and repair.address_id.id or False,
-                        'location_id': operation.location_dest_id.id,
-                        'location_dest_id': operation.location_id.id,
-                        'tracking_id': False,
-                        'state': 'done',
-                    })               
+            res[repair.id] = False
+              
+            if not repair.invoiced:           
+                for operation in repair.operations:
+                    if operation.product_id.type  in ('product', 'consu'):
+                        move_id = move_obj.create(cr, uid, {
+                            'name': operation.name,
+                            'product_id': operation.product_id.id,
+                            'product_qty': operation.product_uom_qty,
+                            'product_uom': operation.product_uom.id,
+                            'address_id': repair.address_id and repair.address_id.id or False,
+                            'location_id': operation.location_dest_id.id,
+                            'location_dest_id': operation.location_id.id,
+                            'tracking_id': False,
+                            'state': 'done',
+                        })               
+            self.write(cr, uid, repair.id, {'invoiced': True, 'state': 'done'})
             
             account_id = repair.partner_id.property_account_receivable.id
             sale_order = {
@@ -474,6 +477,8 @@ class mrp_repair(osv.osv):
                     'product_id': operation.product_id and operation.product_id.id or False,
                 })
                 repair_line_obj.write(cr, uid, [operation.id], {'invoiced': True})
+            res[repair.id] = sale_order
+        return res      
     
     def action_repair_ready(self, cr, uid, ids, context=None):
         """ Writes repair order state to 'Ready'
