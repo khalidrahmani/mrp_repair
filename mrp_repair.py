@@ -181,6 +181,9 @@ class mrp_repair(osv.osv):
         for line in self.pool.get('mrp.repair.line').browse(cr, uid, ids, context=context):
             result[line.repair_id.id] = True
         return result.keys()   
+
+    def unlink(self, cr, uid, ids, context=None):
+        raise osv.except_osv(_('Invalid action !'), _('Vous n\'avez pas le droit de supprimer cet Ordre De Reparation!'))        
     
     _columns = {
         'name': fields.char('Repair Reference', size=64, required=True, readonly=True, states={'draft': [('readonly', False)]}, select=True),
@@ -398,10 +401,13 @@ class mrp_repair(osv.osv):
         repair_line_obj = self.pool.get('mrp.repair.line')
 
         for repair in self.browse(cr, uid, ids, context=context):
+            
+            
             res[str(repair.id)] = False
                         
             self.write(cr, uid, repair.id, {'invoiced': True, 'state': 'done'})
-            
+            if not repair.partner_id.property_account_receivable:
+                raise osv.except_osv(_('Error !'), _('No account defined for partner "%s".') % repair.partner_id.name )
             account_id = repair.partner_id.property_account_receivable.id
             sale_order = {
                           'state': 'draft',
@@ -409,7 +415,7 @@ class mrp_repair(osv.osv):
                           'invoice_ids': [],
                           'picking_ids': [],
                           'date_confirm': False,
-                          'name': repair.name,
+                          'name': repair.name + "-" + str(random.randrange(0, 9)),
                           'origin':repair.name,
                           'account_id': account_id,
                           'partner_id': repair.partner_id.id,

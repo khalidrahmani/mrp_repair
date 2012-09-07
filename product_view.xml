@@ -26,7 +26,7 @@
 					<field name="code_marque" groups="mrp_repair.group_magasinier"/>					
 				</field>
 				<page groups="base.group_extended" string="Packaging" position="replace"/>
-				<page string="Information" position="replace">
+				<page string="Information" position="after">
 					<page string="Information">
 						<group colspan="2" col="2">
 							<separator string="Procurement" colspan="2"/>
@@ -35,6 +35,7 @@
 						</group>
 						<group colspan="2" col="2">
 							<separator string="Base Prices" colspan="2"/>
+							<field name="quantite_in_atelier"/>
 							<field name="list_price"/>
 							<field name="cost_method" groups="base.group_extended"/>
 							<field name="standard_price" attrs="{'readonly':[('cost_method','=','average')]}" groups="base.group_extended"/>
