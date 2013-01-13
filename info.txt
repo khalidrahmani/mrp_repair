@@ -1,0 +1,15 @@
+
+
+sudo scp -r ./account_invoice_layout/ nurwagen@newmarket.mine.nu:
+
+sudo cp -r ./mrp_repair/ /opt/openerp/server/openerp/addons/
+
+ssh nurwagen@newmarket.mine.nu
+nur_admin
+
+sudo /etc/init.d/openerp-server restart
+
+Nurwagen modules
+   mrp_repair
+   account_invoice_layout  "for the invoice print"
+   sale                    "for the invoice print" Vente vehicule

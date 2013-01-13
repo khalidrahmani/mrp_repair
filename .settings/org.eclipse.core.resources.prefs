@@ -1,5 +1,6 @@
-#Sun Oct 28 22:52:30 WET 2012
+#Tue Oct 30 10:59:52 WET 2012
 eclipse.preferences.version=1
+encoding//report/__init__.py=utf-8
 encoding//report/order.py=utf-8
 encoding//wizard/__init__.py=utf-8
 encoding//wizard/cancel_repair.py=utf-8

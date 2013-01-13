@@ -7,6 +7,7 @@ from tools.translate import _
 import decimal_precision as dp
 from lxml import etree
 import random
+import time
 
 class car_marque(osv.osv):
     
@@ -256,7 +257,7 @@ class mrp_repair(osv.osv):
     ]
     
     _defaults = {
-        'create_date2': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'create_date2':  lambda *a: time.strftime('%Y-%m-%d %H:%M:%S'),
         'state': 'draft',
         'name': lambda obj, cr, uid, context: obj.pool.get('ir.sequence').get(cr, uid, 'mrp.repair'),
         'invoice_method': 'after_repair',
@@ -343,9 +344,9 @@ class mrp_repair(osv.osv):
             mrp_line_obj.write(cr, uid, [l.id for l in repair.operations], {'state': 'draft'}, context=context)
         self.write(cr,uid,ids,{'state':'draft'})     
         wf_service = netsvc.LocalService("workflow")
-        for id in ids:            
-            wf_service.trg_delete(uid, 'mrp.repair', id, cr)
-            wf_service.trg_create(uid, 'mrp.repair', id, cr)   
+        for _id in ids:            
+            wf_service.trg_delete(uid, 'mrp.repair', _id, cr)
+            wf_service.trg_create(uid, 'mrp.repair', _id, cr)   
         return True
     
     def is_magasinier(self, cr, uid, ids, context=None):

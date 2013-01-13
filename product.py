@@ -94,7 +94,7 @@ similar_product_line()
 
 class car_caracteristiques(osv.osv):
     _name = 'car.caracteristiques'        
-    _description = 'similar product line'    
+    _description = 'car carestics'    
     
     _columns = {
         'product_id_ref': fields.many2one('product.product', 'Product Ref',ondelete='cascade', select=True),                
