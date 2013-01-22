@@ -83,12 +83,6 @@
             <field name="signal">action_invoice_create</field>
         </record>        
 
-        <record id="trans_invoice_end_done" model="workflow.transition">
-            <field name="act_from" ref="act_invoice_end"/>
-            <field name="act_to" ref="act_done"/>
-            <field name="condition">invoice_method=='after_repair'</field>
-        </record>
-
         <record id="trans_wait_repair_start" model="workflow.transition">
             <field name="act_from" ref="act_wait_repair"/>
             <field name="act_to" ref="act_repair_start"/>

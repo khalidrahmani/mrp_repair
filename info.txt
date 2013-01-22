@@ -1,6 +1,8 @@
-
+sudo gedit /opt/openerp/server/openerp/tools/amount_to_text.py # updated this file
+sudo gedit /var/log/openerp/openerp-server.log
 
 sudo scp -r ./account_invoice_layout/ nurwagen@newmarket.mine.nu:
+sudo scp -r ./mrp_repair/ nurwagen@newmarket.mine.nu:
 
 sudo cp -r ./mrp_repair/ /opt/openerp/server/openerp/addons/
 
